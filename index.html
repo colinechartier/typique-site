@@ -1257,8 +1257,8 @@ function BoutiqueShowcase({
       position: 'relative'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "showcase-sticky",
     style: {
-      position: 'sticky',
       top: 0,
       height: vh,
       overflow: 'hidden'
@@ -1731,6 +1731,12 @@ function TypiqueSite() {
         /* Smooth scroll */
         html { scroll-behavior: smooth; }
 
+        /* Showcase sticky — préfixe webkit pour iOS */
+        .showcase-sticky {
+          position: -webkit-sticky;
+          position: sticky;
+        }
+
         /* Curseur machine à écrire */
         @keyframes tw-blink {
           0%, 49% { opacity: 0.85; }
@@ -1756,8 +1762,8 @@ function TypiqueSite() {
 
         /* ---- MOBILE ---- */
         @media (max-width: 767px) {
-          /* Empêche le débordement horizontal global */
-          body, #root { overflow-x: hidden; }
+          /* overflow-x: clip ne casse pas position:sticky sur Safari (contrairement à hidden) */
+          body, #root { overflow-x: clip; }
 
           /* Hero tagline letter-spacing réduit */
           .hero-tagline { letter-spacing: 0.18em !important; font-size: 0.85rem !important; }
@@ -1928,30 +1934,7 @@ function TypiqueSite() {
   }, "D\xE9couvrir"), /*#__PURE__*/React.createElement(ChevronDown, {
     size: 18,
     strokeWidth: 1.2
-  })))), /*#__PURE__*/React.createElement("section", {
-    className: "relative py-10 md:py-12 overflow-hidden grain",
-    style: {
-      backgroundColor: '#0F2865'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "max-w-7xl mx-auto px-6"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-center gap-6 md:gap-16 flex-wrap text-center",
-    style: {
-      color: '#F4F1EC'
-    }
-  }, ['T-shirts', 'Sweats', 'Accessoires'].map((cat, i) => /*#__PURE__*/React.createElement(React.Fragment, {
-    key: cat
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "#pieces",
-    className: "font-typewriter uppercase tracking-[0.35em] text-sm md:text-lg transition-colors duration-300 hover:text-[#E39A7C]"
-  }, cat), i < 2 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: '#E39A7C',
-      opacity: 0.5
-    },
-    className: "text-lg"
-  }, "\xB7")))))), /*#__PURE__*/React.createElement(BoutiqueShowcase, {
+  })))), /*#__PURE__*/React.createElement(DefinitionSection, null), /*#__PURE__*/React.createElement(BoutiqueShowcase, {
     onSelectCategory: setActiveCategory
   }), /*#__PURE__*/React.createElement("section", {
     id: "pieces",
