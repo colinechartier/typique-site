@@ -1555,9 +1555,10 @@ function ProductCard({
       width: 14,
       height: 14,
       borderRadius: '2px',
+      flexShrink: 0,
       backgroundColor: p.color.hex,
       border: '1px solid rgba(15,40,101,0.18)',
-      flexShrink: 0
+      backgroundImage: p.color.washed ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 1px, transparent 1px, transparent 4px)' : 'none'
     }
   }), /*#__PURE__*/React.createElement("span", {
     className: "font-typewriter text-[10px] tracking-wider",
@@ -1833,9 +1834,10 @@ function ProductModal({
       width: 16,
       height: 16,
       borderRadius: '2px',
+      flexShrink: 0,
       backgroundColor: p.color.hex,
       border: '1px solid rgba(15,40,101,0.18)',
-      flexShrink: 0
+      backgroundImage: p.color.washed ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 1px, transparent 1px, transparent 4px)' : 'none'
     }
   }), /*#__PURE__*/React.createElement("span", {
     className: "font-typewriter text-[11px] tracking-wider",
@@ -2318,6 +2320,11 @@ function TypiqueSite() {
     price: '37 €',
     priceNum: 37,
     sizes: ['Taille unique'],
+    color: {
+      hex: '#2C2C2C',
+      label: 'Noir washed',
+      washed: true
+    },
     desc: "Bob noir washed comme une dune au soleil rasant. Broderie typique, et basta.",
     photos: [PILAT_P1],
     mockup: /*#__PURE__*/React.createElement(BobMockup, {
@@ -2334,6 +2341,10 @@ function TypiqueSite() {
     price: '37 €',
     priceNum: 37,
     sizes: ['Taille unique'],
+    color: {
+      hex: '#6B6F4A',
+      label: 'Kaki'
+    },
     desc: "Velours côtelé kaki comme un buisson de thym brûlé par le mois d'août.",
     photos: [GARRIGUE_P1, GARRIGUE_P2, GARRIGUE_P3],
     mockup: /*#__PURE__*/React.createElement(CasquetteMockup, {
