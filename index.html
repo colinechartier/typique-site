@@ -1543,7 +1543,29 @@ function ProductCard({
     }
   }, p.desc), /*#__PURE__*/React.createElement("div", {
     className: "mt-auto"
-  }, p.sizes.length > 1 ? /*#__PURE__*/React.createElement("div", {
+  }, p.color && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 14,
+      height: 14,
+      borderRadius: '2px',
+      backgroundColor: p.color.hex,
+      border: '1px solid rgba(15,40,101,0.18)',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "font-typewriter text-[10px] tracking-wider",
+    style: {
+      color: '#0F2865',
+      opacity: 0.55
+    }
+  }, p.color.label)), p.sizes.length > 1 ? /*#__PURE__*/React.createElement("div", {
     className: "flex flex-wrap gap-1.5 mb-4"
   }, p.sizes.map(s => /*#__PURE__*/React.createElement("button", {
     key: s,
@@ -1788,14 +1810,40 @@ function ProductModal({
     style: {
       borderLeft: '2px solid #E39A7C',
       paddingLeft: 14,
-      marginBottom: 24
+      marginBottom: 24,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 5
     }
-  }, /*#__PURE__*/React.createElement("p", {
+  }, p.sizeNote.split(' · ').map((line, i) => /*#__PURE__*/React.createElement("p", {
+    key: i,
     className: "font-typewriter text-[11px] tracking-wider",
     style: {
       color: '#E39A7C'
     }
-  }, "\u21B3 ", p.sizeNote)), p.sizes.length > 1 ? /*#__PURE__*/React.createElement("div", {
+  }, i === 0 ? '↳ ' : '  ', line))), p.color && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 16,
+      height: 16,
+      borderRadius: '2px',
+      backgroundColor: p.color.hex,
+      border: '1px solid rgba(15,40,101,0.18)',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "font-typewriter text-[11px] tracking-wider",
+    style: {
+      color: '#0F2865',
+      opacity: 0.55
+    }
+  }, p.color.label)), p.sizes.length > 1 ? /*#__PURE__*/React.createElement("div", {
     className: "flex flex-wrap gap-2 mb-6"
   }, p.sizes.map(s => /*#__PURE__*/React.createElement("button", {
     key: s,
@@ -2145,10 +2193,14 @@ function TypiqueSite() {
     ref: 'TS 01',
     cat: 'T-SHIRTS',
     name: 'Le Ferret',
-    price: '42 €',
-    priceNum: 42,
+    price: '44 €',
+    priceNum: 44,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    sizeNote: 'Coupe oversize — prenez une taille en dessous',
+    sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous, surtout pour les femmes · Laver à 30° à l\'envers',
+    color: {
+      hex: '#3A3D44',
+      label: 'Gris'
+    },
     desc: "Le t-shirt en hommage au Cap, aux étés qui ne finissent pas, aux maisons avec tant de souvenirs qu\'on ne veut plus quitter.",
     photos: [FERRET_P1, FERRET_P2, FERRET_P3, FERRET_P4],
     mockup: /*#__PURE__*/React.createElement(TshirtMockup, {
@@ -2165,6 +2217,11 @@ function TypiqueSite() {
     price: '40 €',
     priceNum: 40,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous, surtout pour les femmes · Laver à 30° à l\'envers',
+    color: {
+      hex: '#6B6F4A',
+      label: 'Kaki'
+    },
     desc: 'Neuf mots dans le dos. Garrigue, baïne, mistral, tchanquée. Tout ce qui fait typique, en une seule pièce.',
     mockup: /*#__PURE__*/React.createElement(TshirtMockup, {
       bodyColor: "#6B6F4A",
@@ -2177,12 +2234,16 @@ function TypiqueSite() {
     ref: 'TS 03',
     cat: 'T-SHIRTS',
     name: 'Sable chaud',
-    price: '37 €',
-    priceNum: 37,
+    price: '38 €',
+    priceNum: 38,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    sizeNote: 'Coupe oversize — prenez une taille en dessous',
+    sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous, surtout pour les femmes · Laver à 30° à l\'envers',
+    color: {
+      hex: '#D6C8B4',
+      label: 'Crème'
+    },
     desc: 'Le plus discret de la collection. Des vêtements simples et épurés, comme on aime.',
-    photos: [SABLE_P1, SABLE_P2],
+    photos: [SABLE_P1, SABLE_P2, SABLE_P3],
     mockup: /*#__PURE__*/React.createElement(TshirtMockup, {
       bodyColor: "#C4B49A",
       letterColor: "#E39A7C",
@@ -2197,7 +2258,11 @@ function TypiqueSite() {
     price: '75 €',
     priceNum: 75,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    sizeNote: 'Coupe oversize — prenez une taille en dessous',
+    sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous, surtout pour les femmes · Laver à 30° à l\'envers',
+    color: {
+      hex: '#1A2B5E',
+      label: 'Noir'
+    },
     desc: "Après que le mistral est tout emporté, il ne reste que la simplicité et l'authenticité.",
     photos: [MISTRAL_P1, MISTRAL_P2, MISTRAL_P3],
     mockup: /*#__PURE__*/React.createElement(HoodieMockup, {
@@ -2213,7 +2278,11 @@ function TypiqueSite() {
     price: '84 €',
     priceNum: 84,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    sizeNote: 'Coupe oversize — prenez une taille en dessous',
+    sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous, surtout pour les femmes · Laver à 30° à l\'envers',
+    color: {
+      hex: '#EDE8DF',
+      label: 'Crème'
+    },
     desc: "Comme une cabane tchanquée au coucher du soleil. Trois fois Typique pour les jours qui comptent triple sur le bassin.",
     photos: [TCHANQUEE_P1, TCHANQUEE_P2, TCHANQUEE_P3],
     mockup: /*#__PURE__*/React.createElement(HoodieMockup, {
@@ -2229,7 +2298,11 @@ function TypiqueSite() {
     price: '84 €',
     priceNum: 84,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    sizeNote: 'Coupe oversize — prenez une taille en dessous',
+    sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous, surtout pour les femmes · Laver à 30° à l\'envers',
+    color: {
+      hex: '#0F1E36',
+      label: 'Bleu nuit'
+    },
     desc: "Bleu marine pour les matins de session, quand l'eau est encore froide et que personne n'a vu la lumière.",
     photos: [SURFER_P1, SURFER_P2, SURFER_P3],
     mockup: /*#__PURE__*/React.createElement(HoodieMockup, {
@@ -2258,8 +2331,8 @@ function TypiqueSite() {
     ref: 'ACC 02',
     cat: 'ACCESSOIRES',
     name: 'La Garrigue',
-    price: '36 €',
-    priceNum: 36,
+    price: '37 €',
+    priceNum: 37,
     sizes: ['Taille unique'],
     desc: "Velours côtelé kaki comme un buisson de thym brûlé par le mois d'août.",
     photos: [GARRIGUE_P1, GARRIGUE_P2, GARRIGUE_P3],
