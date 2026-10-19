@@ -1425,7 +1425,7 @@ const LEGAL_CONTENT = {
       text: `Ce site n'utilise pas de cookies de traçage ou publicitaires. Des cookies techniques strictement nécessaires au fonctionnement du site peuvent être déposés.`
     }, {
       heading: 'Sous-traitants',
-      text: `Shopify Inc. (paiement et gestion des commandes) — conforme RGPD.\nVercel Inc. (hébergement) — conforme RGPD.`
+      text: `Shopify Inc. (paiement et gestion des commandes) — conforme RGPD.\nVercel Inc. (hébergement) — conforme RGPD.\nBrevo (Sendinblue SAS, France — envoi des emails d'alerte drop) — conforme RGPD.`
     }]
   }
 };

@@ -71,6 +71,11 @@
   .rgpd { margin-top: 14px; font-size: 13px; color: rgba(244,241,236,0.55); opacity: 0; }
   .rgpd.on { animation-delay: 0.5s; }
   .rgpd a { color: inherit; text-underline-offset: 3px; }
+  .insta { margin-top: clamp(22px, 3.5vh, 36px); opacity: 0; }
+  .insta.on { animation-delay: 0.25s; }
+  .insta a { display: inline-block; color: var(--terra); text-decoration: none; font-family: 'American Typewriter', 'Special Elite', monospace; font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase;
+    padding: 12px 0 8px; border-bottom: 1px solid rgba(227, 154, 124, 0.6); text-shadow: 0 1px 14px rgba(10, 31, 61, 0.75); }
+  .insta a:hover { color: var(--cream); border-color: var(--cream); }
   .merci { margin-top: clamp(24px, 4vh, 40px); font-family: 'Cormorant', serif; font-style: italic; font-size: 21px; color: var(--terra); }
   .erreur { margin-top: 12px; font-size: 14px; color: var(--terra); }
 
@@ -118,6 +123,7 @@
       <button type="submit" id="go">Me prévenir →</button>
     </form>
     <p class="rgpd" id="rgpd">Un mail par drop, pas plus. Désinscription en un clic · <a href="/legal/#confidentialite">Confidentialité</a> · <a href="/legal/#mentions">Mentions légales</a></p>
+    <p class="insta" id="insta" hidden><a href="https://instagram.com/typique.fr">Suivre @typique.fr →</a></p>
     <p class="merci" id="merci" hidden>C'est noté. Tu seras parmi les premiers prévenus.</p>
     <p class="erreur" id="erreur" hidden></p>
   </main>
@@ -129,7 +135,7 @@
   // Machine à écrire, puis apparition du texte et du formulaire
   const texte = 'Le prochain drop arrive très bientôt.';
   const lede = document.getElementById('lede');
-  const suite = () => ['sub', 'f', 'rgpd'].forEach(id => document.getElementById(id).classList.add('on'));
+  const suite = () => ['sub', 'f', 'rgpd', 'insta'].forEach(id => document.getElementById(id).classList.add('on'));
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { lede.textContent = texte; suite(); }
   else {
     let i = 0;
@@ -144,6 +150,14 @@
   const ENDPOINT = '';
   const form = document.getElementById('f');
   const erreur = document.getElementById('erreur');
+
+  // Inscriptions pas encore branchées : on renvoie vers Instagram plutôt que de perdre des adresses
+  if (!ENDPOINT) {
+    document.getElementById('sub').innerHTML = 'Avec des pièces encore plus typiques.<br>Suis-nous sur Instagram pour ne rien rater.';
+    form.hidden = true;
+    document.getElementById('rgpd').hidden = true;
+    document.getElementById('insta').hidden = false;
+  }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = form.EMAIL.value.trim();
