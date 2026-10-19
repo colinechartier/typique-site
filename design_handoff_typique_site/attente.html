@@ -74,12 +74,6 @@
   .merci { margin-top: clamp(24px, 4vh, 40px); font-family: 'Cormorant', serif; font-style: italic; font-size: 21px; color: var(--terra); }
   .erreur { margin-top: 12px; font-size: 14px; color: var(--terra); }
 
-  /* ---------- Lexique défilant ---------- */
-  .lexique { position: fixed; left: 0; right: 0; bottom: calc(var(--gutter) + 56px); z-index: 3; overflow: hidden; opacity: 0; animation: fade 1.5s ease 3s forwards; pointer-events: none;
-    -webkit-mask: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
-  .lexique div { display: flex; gap: 3.2em; width: max-content; animation: marquee 70s linear infinite; font-family: 'Cormorant', serif; font-style: italic; font-size: 17px; color: rgba(244,241,236,0.38); white-space: nowrap; }
-  .lexique span:nth-child(4n+3) { color: rgba(227,154,124,0.6); }
-
   [hidden] { display: none !important; }
 
   @keyframes tighten { from { opacity: 0; letter-spacing: 0.4em; margin-right: -0.4em; filter: blur(6px); } to { opacity: 1; letter-spacing: 0.02em; margin-right: -0.02em; filter: blur(0); } }
@@ -88,12 +82,10 @@
   @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
   @keyframes blink { 50% { opacity: 0; } }
   @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
-  @keyframes marquee { to { transform: translateX(-50%); } }
 
   @media (max-width: 640px) {
     .tr, .bl { display: none; }
     .br { left: 0; right: 0; text-align: center; }
-    .lexique { bottom: calc(var(--gutter) + 52px); }
     form { flex-direction: column; align-items: stretch; gap: 6px; }
     button { text-align: center; padding: 14px 0 0; }
   }
@@ -130,15 +122,9 @@
     <p class="erreur" id="erreur" hidden></p>
   </main>
 
-  <div class="lexique" aria-hidden="true"><div id="lex"></div></div>
-
 <script>
   // Vidéo : 540p sur mobile, 720p sinon
   document.getElementById('v').src = matchMedia('(max-width: 767px)').matches ? '{{asset:media/hero-540.mp4}}' : '{{asset:media/hero-720.mp4}}';
-
-  // Lexique (répété pour une boucle sans couture)
-  const mots = ['garrigue', 'baïne', 'mistral', 'tchanquée', 'restanque', 'cachotte', 'farigoule', 'la leyre'];
-  document.getElementById('lex').innerHTML = [...mots, ...mots, ...mots, ...mots].map(m => `<span>${m} ·</span>`).join('');
 
   // Machine à écrire, puis apparition du texte et du formulaire
   const texte = 'Le prochain drop arrive très bientôt.';
