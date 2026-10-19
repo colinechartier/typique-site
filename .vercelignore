@@ -1,4 +1,5 @@
-# Vercel ne publie que le site : index.html, photos/, hero-video.mp4
+# Vercel ne publie que le site : index.html, app.js, photos/, media/, vendor/, favicons
 design_handoff_typique_site
 tools
+sources
 .gitignore
