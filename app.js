@@ -1357,7 +1357,7 @@ const LEGAL_CONTENT = {
     title: 'Mentions légales',
     sections: [{
       heading: 'Éditeur du site',
-      text: `Raison sociale : Typique\nNom : Coline Chartier\nAdresse : 58 rue Denise Vernay, 13330 Pélissanne, France\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com\nSite : vercel-deploy-typique.vercel.app`
+      text: `Raison sociale : Typique\nNom : Coline Chartier\nAdresse : 58 rue Denise Vernay, 13330 Pélissanne, France\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com\nSite : www.boutiquetypique.fr`
     }, {
       heading: 'Hébergement',
       text: `Ce site est hébergé par Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA — vercel.com`

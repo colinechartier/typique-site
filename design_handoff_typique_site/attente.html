@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typique — Le prochain drop arrive très bientôt</title>
+<meta name="description" content="Typique, surfwear entre sel et soleil. Le prochain drop arrive très bientôt : laisse ton adresse pour être prévenu en premier.">
+<meta property="og:title" content="Typique — Le prochain drop arrive très bientôt">
+<meta property="og:description" content="Des pièces encore plus typiques. Laisse ton adresse, on t'envoie un mail dès l'ouverture.">
+<meta name="theme-color" content="#0A1F3D">
+<link rel="icon" type="image/svg+xml" href="{{asset:favicon.svg}}">
+<link rel="apple-touch-icon" href="{{asset:apple-touch-icon.png}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="{{fonts_attente}}" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="{{fonts_attente}}"></noscript>
+<link rel="preload" as="image" href="{{asset:media/hero-poster.webp}}" fetchpriority="high">
+<style>
+  :root {
+    --navy: #0F2865; --navy-deep: #0A1F3D; --cream: #F4F1EC; --terra: #E39A7C;
+    --gutter: clamp(16px, 3vw, 36px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--navy-deep); color: var(--cream);
+    font-family: 'EB Garamond', Georgia, serif; overflow-x: hidden; -webkit-font-smoothing: antialiased;
+  }
+  .tw { font-family: 'American Typewriter', 'Special Elite', monospace; }
+
+  /* ---------- Fond : vidéo + voile + vignette + grain ---------- */
+  .stage { position: fixed; inset: 0; overflow: hidden; }
+  .stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .veil { position: absolute; inset: 0; background: rgba(15, 40, 101, 0.42); }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 70% at 50% 45%, transparent 30%, rgba(10, 31, 61, 0.7) 100%); }
+  .grain { position: absolute; inset: 0; opacity: 0.09; mix-blend-mode: overlay; pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+
+  /* ---------- Cadre « viseur » ---------- */
+  .frame { position: fixed; inset: var(--gutter); border: 1px solid rgba(244, 241, 236, 0.2); pointer-events: none; z-index: 2; }
+  .corner { position: fixed; z-index: 3; font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0; animation: fade 1.2s ease 2.6s forwards; }
+  .corner a { color: inherit; text-decoration: none; border-bottom: 1px solid rgba(244, 241, 236, 0.35); padding-bottom: 2px; }
+  .tl { top: calc(var(--gutter) + 18px); left: calc(var(--gutter) + 20px); }
+  .tr { top: calc(var(--gutter) + 18px); right: calc(var(--gutter) + 20px); }
+  .bl { bottom: calc(var(--gutter) + 18px); left: calc(var(--gutter) + 20px); }
+  .br { bottom: calc(var(--gutter) + 18px); right: calc(var(--gutter) + 20px); font-family: 'Cormorant', serif; font-style: italic; font-size: 15px; letter-spacing: 0.04em; text-transform: none; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--terra); margin-right: 10px; vertical-align: 1px; animation: pulse 2.4s ease-in-out infinite; }
+
+  /* ---------- Contenu central ---------- */
+  main { position: relative; z-index: 4; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 90px calc(var(--gutter) + 24px) 130px; }
+  .logo { font-family: 'Special Elite', monospace; font-weight: 400; font-size: clamp(64px, 15vw, 210px); line-height: 0.9; letter-spacing: 0.4em; margin-right: -0.4em; opacity: 0;
+    animation: tighten 2.2s cubic-bezier(.2,.7,.2,1) 0.3s forwards; text-shadow: 0 2px 30px rgba(10,31,61,0.35); }
+  .wave { width: clamp(150px, 18vw, 240px); aspect-ratio: 744 / 113; background: var(--cream); margin: clamp(14px, 2vw, 22px) auto 0;
+    -webkit-mask: url({{asset:photos/wave_divider.png}}) center / contain no-repeat; mask: url({{asset:photos/wave_divider.png}}) center / contain no-repeat;
+    clip-path: inset(0 100% 0 0); animation: draw 1.4s ease 1.6s forwards; }
+  .lede, .sub { text-shadow: 0 1px 14px rgba(10, 31, 61, 0.75); }
+  .lede { font-family: 'Cormorant', serif; font-style: italic; font-weight: 400; font-size: clamp(24px, 3.2vw, 40px); margin-top: clamp(26px, 4vh, 44px); min-height: 1.3em; }
+  .cursor { display: inline-block; width: 1px; height: 0.9em; background: var(--cream); margin-left: 3px; vertical-align: -0.1em; animation: blink 1s steps(1) infinite; }
+  .sub { max-width: 30em; font-size: clamp(15px, 1.25vw, 18px); line-height: 1.6; opacity: 0; margin-top: 14px; color: rgba(244,241,236,0.85); }
+  .on { animation: rise 1s ease forwards; }
+
+  form { margin-top: clamp(24px, 4vh, 40px); display: flex; align-items: flex-end; gap: 18px; width: min(460px, 100%); opacity: 0; }
+  form.on { animation-delay: 0.25s; }
+  input[type=email] { flex: 1; min-width: 0; background: transparent; border: 0; border-bottom: 1px solid rgba(244,241,236,0.55); border-radius: 0; color: var(--cream); font: inherit; font-size: 17px; padding: 8px 2px; outline: none; transition: border-color .3s; }
+  input[type=email]::placeholder { color: rgba(244,241,236,0.45); font-style: italic; }
+  input[type=email]:focus { border-color: var(--terra); }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  button { background: none; border: 0; cursor: pointer; color: var(--terra); font-family: 'American Typewriter', 'Special Elite', monospace; font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; padding: 10px 0; white-space: nowrap; }
+  button:hover { color: var(--cream); }
+  button:disabled { opacity: .5; cursor: default; }
+  .rgpd { margin-top: 14px; font-size: 13px; color: rgba(244,241,236,0.55); opacity: 0; }
+  .rgpd.on { animation-delay: 0.5s; }
+  .rgpd a { color: inherit; text-underline-offset: 3px; }
+  .merci { margin-top: clamp(24px, 4vh, 40px); font-family: 'Cormorant', serif; font-style: italic; font-size: 21px; color: var(--terra); }
+  .erreur { margin-top: 12px; font-size: 14px; color: var(--terra); }
+
+  /* ---------- Lexique défilant ---------- */
+  .lexique { position: fixed; left: 0; right: 0; bottom: calc(var(--gutter) + 56px); z-index: 3; overflow: hidden; opacity: 0; animation: fade 1.5s ease 3s forwards; pointer-events: none;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+  .lexique div { display: flex; gap: 3.2em; width: max-content; animation: marquee 70s linear infinite; font-family: 'Cormorant', serif; font-style: italic; font-size: 17px; color: rgba(244,241,236,0.38); white-space: nowrap; }
+  .lexique span:nth-child(4n+3) { color: rgba(227,154,124,0.6); }
+
+  [hidden] { display: none !important; }
+
+  @keyframes tighten { from { opacity: 0; letter-spacing: 0.4em; margin-right: -0.4em; filter: blur(6px); } to { opacity: 1; letter-spacing: 0.02em; margin-right: -0.02em; filter: blur(0); } }
+  @keyframes draw { to { clip-path: inset(0 0 0 0); } }
+  @keyframes fade { to { opacity: 0.85; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+
+  @media (max-width: 640px) {
+    .tr, .bl { display: none; }
+    .br { left: 0; right: 0; text-align: center; }
+    .lexique { bottom: calc(var(--gutter) + 52px); }
+    form { flex-direction: column; align-items: stretch; gap: 6px; }
+    button { text-align: center; padding: 14px 0 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage" aria-hidden="true">
+    <video id="v" autoplay muted loop playsinline preload="auto" poster="{{asset:media/hero-poster.webp}}"></video>
+    <div class="veil"></div><div class="vignette"></div><div class="grain"></div>
+  </div>
+  <div class="frame"></div>
+
+  <p class="corner tl tw"><span class="dot"></span>Drop 03 — en préparation</p>
+  <p class="corner tr tw"><a href="https://instagram.com/typique.fr">@typique.fr</a></p>
+  <p class="corner bl tw">Calanques · Cap Ferret</p>
+  <p class="corner br">entre sel et soleil</p>
+
+  <main>
+    <h1 class="logo">typique</h1>
+    <div class="wave" aria-hidden="true"></div>
+    <p class="lede"><span id="lede"></span><span class="cursor" id="cursor" aria-hidden="true"></span></p>
+    <p class="sub" id="sub">Avec des pièces encore plus typiques.<br>Laisse ton adresse, on t'envoie un mail dès l'ouverture.</p>
+    <form id="f" novalidate>
+      <input type="email" name="EMAIL" required autocomplete="email" placeholder="ton@email.fr" aria-label="Ton adresse email">
+      <input class="hp" type="text" name="email_address_check" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <input type="hidden" name="locale" value="fr">
+      <button type="submit" id="go">Me prévenir →</button>
+    </form>
+    <p class="rgpd" id="rgpd">Un mail par drop, pas plus. Désinscription en un clic · <a href="/legal/#confidentialite">Confidentialité</a> · <a href="/legal/#mentions">Mentions légales</a></p>
+    <p class="merci" id="merci" hidden>C'est noté. Tu seras parmi les premiers prévenus.</p>
+    <p class="erreur" id="erreur" hidden></p>
+  </main>
+
+  <div class="lexique" aria-hidden="true"><div id="lex"></div></div>
+
+<script>
+  // Vidéo : 540p sur mobile, 720p sinon
+  document.getElementById('v').src = matchMedia('(max-width: 767px)').matches ? '{{asset:media/hero-540.mp4}}' : '{{asset:media/hero-720.mp4}}';
+
+  // Lexique (répété pour une boucle sans couture)
+  const mots = ['garrigue', 'baïne', 'mistral', 'tchanquée', 'restanque', 'cachotte', 'farigoule', 'la leyre'];
+  document.getElementById('lex').innerHTML = [...mots, ...mots, ...mots, ...mots].map(m => `<span>${m} ·</span>`).join('');
+
+  // Machine à écrire, puis apparition du texte et du formulaire
+  const texte = 'Le prochain drop arrive très bientôt.';
+  const lede = document.getElementById('lede');
+  const suite = () => ['sub', 'f', 'rgpd'].forEach(id => document.getElementById(id).classList.add('on'));
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { lede.textContent = texte; suite(); }
+  else {
+    let i = 0;
+    setTimeout(function taper() {
+      lede.textContent = texte.slice(0, ++i);
+      if (i < texte.length) setTimeout(taper, 55 + Math.random() * 70);
+      else setTimeout(() => { document.getElementById('cursor').style.display = 'none'; suite(); }, 900);
+    }, 2300);
+  }
+
+  // Inscription aux alertes drop
+  const ENDPOINT = '{{alertes_endpoint}}';
+  const form = document.getElementById('f');
+  const erreur = document.getElementById('erreur');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = form.EMAIL.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { erreur.textContent = 'Cette adresse ne semble pas valide.'; erreur.hidden = false; return; }
+    if (form.email_address_check.value) return; // robot
+    erreur.hidden = true;
+    const bouton = document.getElementById('go');
+    bouton.disabled = true; bouton.textContent = 'Envoi…';
+    try {
+      if (ENDPOINT) await fetch(ENDPOINT, { method: 'POST', body: new FormData(form), mode: 'no-cors' });
+      else console.warn("Formulaire d'alertes non branché : ALERTES_ENDPOINT est vide dans tools/build.py");
+      form.hidden = true; document.getElementById('rgpd').hidden = true;
+      document.getElementById('merci').hidden = false;
+    } catch (err) {
+      bouton.disabled = false; bouton.textContent = 'Me prévenir →';
+      erreur.textContent = "Oups, l'envoi n'a pas marché. Réessaie dans un instant."; erreur.hidden = false;
+    }
+  });
+</script>
+</body>
+</html>

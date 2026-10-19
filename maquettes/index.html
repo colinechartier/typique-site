@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typique — Maquettes page d'attente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Cormorant:ital,wght@0,400;1,400&family=EB+Garamond:ital,wght@0,400;1,400&display=swap">
+<style>
+  :root { --navy: #0F2865; --cream: #F4F1EC; --sand: #D7CFC2; --terra: #E39A7C; --terra-deep: #C77D60; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--cream); color: var(--navy); font-family: 'EB Garamond', Georgia, serif; -webkit-font-smoothing: antialiased; }
+  .tw { font-family: 'American Typewriter', 'Special Elite', monospace; }
+  header { max-width: 1120px; margin: 0 auto; padding: 48px 24px 8px; }
+  header h1 { font-family: 'Special Elite', monospace; font-weight: 400; font-size: clamp(34px, 5vw, 54px); }
+  header p { font-family: 'Cormorant', serif; font-style: italic; font-size: 20px; opacity: .7; margin-top: 6px; }
+  .rule { height: 5px; border-top: 1px solid var(--navy); border-bottom: 1px solid var(--navy); opacity: .5; margin-top: 22px; }
+
+  .option { max-width: 1120px; margin: 0 auto; padding: 44px 24px; border-bottom: 1px dashed rgba(15,40,101,.2); }
+  .head { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .letter { font-family: 'Special Elite', monospace; font-size: 56px; color: var(--terra-deep); line-height: 1; }
+  .head h2 { font-family: 'Special Elite', monospace; font-weight: 400; font-size: 28px; }
+  .head .links { margin-left: auto; display: flex; gap: 18px; font-size: 10px; letter-spacing: .28em; text-transform: uppercase; }
+  .head .links a, .head .links button { color: var(--navy); background: none; border: 0; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--terra); }
+  .desc { font-size: 18px; line-height: 1.55; max-width: 46em; margin: 10px 0 24px; opacity: .85; }
+  .desc em { color: var(--terra-deep); }
+
+  .frames { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+  .screen { position: relative; overflow: hidden; border-radius: 6px; box-shadow: 0 1px 2px rgba(10,31,61,.1), 0 20px 40px -18px rgba(10,31,61,.45); background: #0A1F3D; }
+  .screen iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; }
+  .desktop { width: 720px; height: 450px; }
+  .desktop iframe { width: 1440px; height: 900px; transform: scale(.5); }
+  .phone { width: 234px; height: 506px; border-radius: 26px; border: 6px solid #111; }
+  .phone iframe { width: 390px; height: 844px; transform: scale(.5846); }
+  .label { font-size: 9px; letter-spacing: .3em; text-transform: uppercase; opacity: .5; margin-top: 10px; }
+
+  @media (max-width: 1060px) {
+    .desktop { width: 100%; height: auto; aspect-ratio: 16 / 10; }
+    .desktop iframe { transform: scale(var(--s, .5)); }
+  }
+  footer { text-align: center; padding: 36px 24px 56px; font-family: 'Cormorant', serif; font-style: italic; font-size: 17px; opacity: .7; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>typique — page d'attente</h1>
+    <p>Trois propositions pour patienter jusqu'au prochain drop · les formulaires sont factices dans les maquettes</p>
+    <div class="rule"></div>
+  </header>
+
+  <section class="option">
+    <div class="head">
+      <span class="letter">A</span><h2>Marée haute</h2>
+      <div class="links tw"><button data-replay>↻ Rejouer</button><a href="a-maree-haute.html" target="_blank">Ouvrir en grand</a></div>
+    </div>
+    <p class="desc">Le prolongement direct du site actuel : la vidéo de l'océan en plein écran, « typique » qui se resserre, la vague qui se dessine, puis la phrase tapée à la machine. Un cadre de viseur, le lexique qui défile en bas. <em>Immersif, sombre, cinéma.</em></p>
+    <div class="frames">
+      <div><div class="screen desktop"><iframe src="a-maree-haute.html" loading="lazy" title="Maquette A, ordinateur"></iframe></div><p class="label tw">Ordinateur</p></div>
+      <div><div class="screen phone"><iframe src="a-maree-haute.html" loading="lazy" title="Maquette A, téléphone"></iframe></div><p class="label tw">Téléphone</p></div>
+    </div>
+  </section>
+
+  <section class="option">
+    <div class="head">
+      <span class="letter">B</span><h2>Le dictionnaire</h2>
+      <div class="links tw"><button data-replay>↻ Rejouer</button><a href="b-dictionnaire.html" target="_blank">Ouvrir en grand</a></div>
+    </div>
+    <p class="desc">Une page du « dictionnaire des deux côtes », comme l'entrée <em>typique [tchipik]</em> du site. Le mot <em>drop</em> se tape à la machine, un tampon « BIENTÔT » vient frapper la page, et l'inscription se glisse dans l'exemple de l'entrée <em>bientôt</em>. <em>Clair, éditorial, malin.</em></p>
+    <div class="frames">
+      <div><div class="screen desktop"><iframe src="b-dictionnaire.html" loading="lazy" title="Maquette B, ordinateur"></iframe></div><p class="label tw">Ordinateur</p></div>
+      <div><div class="screen phone"><iframe src="b-dictionnaire.html" loading="lazy" title="Maquette B, téléphone"></iframe></div><p class="label tw">Téléphone</p></div>
+    </div>
+  </section>
+
+  <section class="option">
+    <div class="head">
+      <span class="letter">C</span><h2>Carte postale</h2>
+      <div class="links tw"><button data-replay>↻ Rejouer</button><a href="c-carte-postale.html" target="_blank">Ouvrir en grand</a></div>
+    </div>
+    <p class="desc">L'esprit « carnet de voyage entre potes » : la cabane tchanquée du site au coucher du soleil, et une carte postale écrite à la main. On met son adresse email comme destinataire et on « poste la carte ». <em>Chaleureux, illustré, complice.</em></p>
+    <div class="frames">
+      <div><div class="screen desktop"><iframe src="c-carte-postale.html" loading="lazy" title="Maquette C, ordinateur"></iframe></div><p class="label tw">Ordinateur</p></div>
+      <div><div class="screen phone"><iframe src="c-carte-postale.html" loading="lazy" title="Maquette C, téléphone"></iframe></div><p class="label tw">Téléphone</p></div>
+    </div>
+  </section>
+
+  <footer>entre sel et soleil</footer>
+
+<script>
+  // Rejouer les animations d'une maquette
+  document.querySelectorAll('[data-replay]').forEach(b => b.addEventListener('click', () => {
+    b.closest('.option').querySelectorAll('iframe').forEach(f => { f.src = f.src; });
+  }));
+  // Écrans étroits : l'aperçu ordinateur suit la largeur disponible
+  const ajuster = () => document.querySelectorAll('.desktop').forEach(d => d.style.setProperty('--s', d.clientWidth / 1440));
+  addEventListener('resize', ajuster); ajuster();
+</script>
+</body>
+</html>
