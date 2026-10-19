@@ -1,5 +1,15 @@
 .DS_Store
 TYPIQUE.zip
 typique.html
-design_handoff_typique_site/
+preview.html
 .claude/
+.cache/
+
+# Contient des tokens d'accès — ne JAMAIS publier (le dépôt est public)
+CLAUDE.md
+
+# Photos originales (lourdes) à la racine — les versions web sont dans photos/
+/*.PNG
+/*.png
+/*.jpg
+/*.jpeg
