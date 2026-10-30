@@ -1,39 +1,37 @@
 var ACCESSOIRES_SHOWCASE='/photos/accessoires_showcase.webp?v=b00d0b4272';
 var BOB_PHOTO='/photos/bob_photo.webp?v=ed84152aac';
 var CASQUETTE_PHOTO='/photos/casquette_photo.webp?v=dddbba4b5d';
-var ENTREDEUX_ARRIERE='/photos/entredeux_arriere.webp?v=6cb4dd775f';
-var ENTREDEUX_AVANT='/photos/entredeux_avant.webp?v=1a6be5ba6f';
-var ENTREDEUX_P3='/photos/entredeux_p3.webp?v=c8fd3a267a';
-var ENTREDEUX_P4='/photos/entredeux_p4.webp?v=45fa2fe165';
-var FERRET_ARRIERE='/photos/ferret_arriere.webp?v=874864fc64';
-var FERRET_AVANT='/photos/ferret_avant.webp?v=e5e7ecb460';
-var FERRET_P1='/photos/ferret_p1.webp?v=94a539e143';
-var FERRET_P2='/photos/ferret_p2.webp?v=8d5e2cd14c';
-var FERRET_P3='/photos/ferret_p3.webp?v=ac8c8ed5b4';
-var FERRET_P4='/photos/ferret_p4.webp?v=1ca2dfe72f';
+var CORPSSALE_ARRIERE='/photos/corpssale_arriere.webp?v=01a3c9e9f8';
+var CORPSSALE_AVANT='/photos/corpssale_avant.webp?v=65fd661ce5';
+var ENTREDEUX_ARRIERE='/photos/entredeux_arriere.webp?v=0cc882e0d7';
+var ENTREDEUX_AVANT='/photos/entredeux_avant.webp?v=b573396e63';
+var ESTAQUE_ARRIERE='/photos/estaque_arriere.webp?v=c0408cf80a';
+var ESTAQUE_AVANT='/photos/estaque_avant.webp?v=5221f69059';
+var FERRET_ARRIERE='/photos/ferret_arriere.webp?v=547cd43c32';
+var FERRET_AVANT='/photos/ferret_avant.webp?v=2114ecaf24';
 var GARRIGUE_P1='/photos/garrigue_p1.webp?v=46392dcfbe';
 var GARRIGUE_P2='/photos/garrigue_p2.webp?v=36d1541475';
 var GARRIGUE_P3='/photos/garrigue_p3.webp?v=2a7800495d';
 var HOODIES_SHOWCASE='/photos/hoodies_showcase.webp?v=f3ba3e4846';
-var MISTRAL_AVANT='/photos/mistral_avant.webp?v=ac188c6d12';
-var MISTRAL_R2='/photos/mistral_r2.webp?v=7207ebed22';
-var MISTRAL_R3='/photos/mistral_r3.webp?v=883da9cde9';
+var MINOT_ARRIERE='/photos/minot_arriere.webp?v=6ecf116b6e';
+var MINOT_AVANT='/photos/minot_avant.webp?v=1b28cb11fc';
+var MISTRAL_ARRIERE='/photos/mistral_arriere.webp?v=d54dc4c91a';
+var MISTRAL_AVANT='/photos/mistral_avant.webp?v=328ee55e37';
+var PETITMATIN_ARRIERE='/photos/petitmatin_arriere.webp?v=ba5523e580';
+var PETITMATIN_AVANT='/photos/petitmatin_avant.webp?v=37514bd25e';
 var PILAT_P1='/photos/pilat_p1.webp?v=91fdedc455';
-var SABLE_NOUVEAU='/photos/sable_nouveau.webp?v=663920bc3c';
-var SABLE_P1='/photos/sable_p1.webp?v=e3518a79eb';
-var SABLE_P2='/photos/sable_p2.webp?v=5e840cd91f';
-var SABLE_P3='/photos/sable_p3.webp?v=4cefaf6c91';
-var SURFER_ARRIERE='/photos/surfer_arriere.webp?v=310b91c5e3';
-var SURFER_AVANT='/photos/surfer_avant.webp?v=d2ce8d9533';
-var SURFER_R1='/photos/surfer_r1.webp?v=ed0e700b68';
-var SURFER_R2='/photos/surfer_r2.webp?v=811d5257ba';
-var SURFER_R3='/photos/surfer_r3.webp?v=7906218f6c';
-var SURFER_R4='/photos/surfer_r4.webp?v=91cbd50503';
-var TCHANQUEE_ARRIERE='/photos/tchanquee_arriere.webp?v=5b0410ff0a';
-var TCHANQUEE_AVANT='/photos/tchanquee_avant.webp?v=dd3aa5db0d';
-var TCHANQUEE_P1='/photos/tchanquee_p1.webp?v=16d91046ab';
-var TCHANQUEE_P2='/photos/tchanquee_p2.webp?v=90c5c2451b';
-var TCHANQUEE_P3='/photos/tchanquee_p3.webp?v=7e9035898f';
+var PINEDE_ARRIERE='/photos/pinede_arriere.webp?v=4547dce6b5';
+var PINEDE_AVANT='/photos/pinede_avant.webp?v=7275410c7c';
+var PLEINCAGNARD_ARRIERE='/photos/pleincagnard_arriere.webp?v=03ba1c2632';
+var PLEINCAGNARD_AVANT='/photos/pleincagnard_avant.webp?v=4ceda5d184';
+var SABLE_ARRIERE='/photos/sable_arriere.webp?v=bccefefd4e';
+var SABLE_AVANT='/photos/sable_avant.webp?v=710f312534';
+var SOLEILCOUCHANT_ARRIERE='/photos/soleilcouchant_arriere.webp?v=6afa0c0092';
+var SOLEILCOUCHANT_AVANT='/photos/soleilcouchant_avant.webp?v=872807d988';
+var SURFER_ARRIERE='/photos/surfer_arriere.webp?v=2a21557ca0';
+var SURFER_AVANT='/photos/surfer_avant.webp?v=5cdcfc6092';
+var TCHANQUEE_ARRIERE='/photos/tchanquee_arriere.webp?v=342d65ad9e';
+var TCHANQUEE_AVANT='/photos/tchanquee_avant.webp?v=e0f66c68a5';
 var TSHIRT_SHOWCASE='/photos/tshirt_showcase.webp?v=877a829552';
 var WAVE_DIVIDER='/photos/wave_divider.png?v=73e425ea9e';
 var HERO_540='/media/hero-540.mp4?v=6a669a2ca7';
@@ -1053,24 +1051,7 @@ function DefinitionSection() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "max-w-2xl mx-auto text-center"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-center gap-4 mb-12 opacity-50"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "h-px w-12",
-    style: {
-      background: '#0F2865'
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "font-typewriter text-xs tracking-[0.4em]",
-    style: {
-      color: '#0F2865'
-    }
-  }, "I."), /*#__PURE__*/React.createElement("div", {
-    className: "h-px w-12",
-    style: {
-      background: '#0F2865'
-    }
-  })), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
     className: "sr-only"
   }, fullDef), /*#__PURE__*/React.createElement("div", {
     className: "text-left md:text-center",
@@ -1592,7 +1573,7 @@ function ProductCard({
   const [selectedSize, setSelectedSize] = useState(p.sizes[0]);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const isOpen = dropStatus === 'active_1' || dropStatus === 'active_2';
+  const isOpen = (dropStatus === 'active_1' || dropStatus === 'active_2') && !!SHOPIFY_IDS[p.id];
   const hasPhotos = p.photos && p.photos.length > 0;
   const handleAdd = e => {
     e.stopPropagation();
@@ -1754,12 +1735,12 @@ function ProductCard({
       color: selectedSize === s ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
       cursor: 'pointer'
     }
-  }, s))) : /*#__PURE__*/React.createElement("p", {
+  }, s))) : p.sizes.length === 1 ? /*#__PURE__*/React.createElement("p", {
     className: "font-typewriter text-[11px] tracking-wider mb-4",
     style: {
       opacity: 0.45
     }
-  }, "Taille unique"), /*#__PURE__*/React.createElement("div", {
+  }, "Taille unique") : null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "font-serif text-xl"
@@ -1790,7 +1771,7 @@ function ProductModal({
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const isOpen = dropStatus === 'active_1' || dropStatus === 'active_2';
+  const isOpen = (dropStatus === 'active_1' || dropStatus === 'active_2') && !!SHOPIFY_IDS[p.id];
   const hasPhotos = p.photos && p.photos.length > 0;
 
   // Fermer avec Échap + bouton retour navigateur
@@ -2051,12 +2032,12 @@ function ProductModal({
       color: selectedSize === s ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
       cursor: 'pointer'
     }
-  }, s))) : /*#__PURE__*/React.createElement("p", {
+  }, s))) : p.sizes.length === 1 ? /*#__PURE__*/React.createElement("p", {
     className: "font-typewriter text-[11px] tracking-wider mb-6",
     style: {
       opacity: 0.45
     }
-  }, "Taille unique"), /*#__PURE__*/React.createElement("div", {
+  }, "Taille unique") : null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mt-auto"
   }, /*#__PURE__*/React.createElement("span", {
     className: "font-serif",
@@ -2167,7 +2148,7 @@ function ProductModal({
 }
 
 // ============================================================
-// BOUTIQUE SHOWCASE — sticky scroll (3 slides)
+// BOUTIQUE SHOWCASE — sticky scroll (une slide par catégorie)
 // ============================================================
 function BoutiqueShowcase({
   onSelectCategory
@@ -2187,7 +2168,7 @@ function BoutiqueShowcase({
         const scrolled = Math.max(0, -rect.top);
         const maxScroll = containerH - viewH;
         const progress = maxScroll > 0 ? Math.min(1, scrolled / maxScroll) : 0;
-        const next = progress < 0.333 ? 0 : progress < 0.666 ? 1 : 2;
+        const next = Math.min(slides.length - 1, Math.floor(progress * slides.length));
         setActiveSlide(prev => prev !== next ? next : prev);
       });
     }
@@ -2210,6 +2191,17 @@ function BoutiqueShowcase({
     photo: typeof TSHIRT_SHOWCASE !== 'undefined' ? TSHIRT_SHOWCASE : typeof FERRET_P1 !== 'undefined' ? FERRET_P1 : null,
     photoPosition: 'center center',
     brightness: 0.38
+  }, {
+    bg: '#5A2430',
+    textColor: '#F4F1EC',
+    accentColor: '#E39A7C',
+    label: 'Manches longues',
+    catKey: 'MANCHES LONGUES',
+    ctaLabel: 'Voir les manches longues',
+    photo: SOLEILCOUCHANT_ARRIERE,
+    photoPosition: 'center center',
+    brightness: 0.38,
+    wrap: true // deux mots : passe sur deux lignes sur téléphone
   }, {
     bg: '#0F2865',
     textColor: '#F4F1EC',
@@ -2314,7 +2306,7 @@ function BoutiqueShowcase({
         opacity: isActive ? 1 : 0.2,
         transition: 'font-size 0.65s cubic-bezier(0.4,0,0.2,1), opacity 0.65s cubic-bezier(0.4,0,0.2,1)',
         letterSpacing: '-0.01em',
-        whiteSpace: 'nowrap',
+        whiteSpace: s.wrap ? 'normal' : 'nowrap',
         cursor: 'default',
         userSelect: 'none'
       }
@@ -2374,7 +2366,7 @@ function BoutiqueShowcase({
       marginBottom: '4px',
       transition: 'color 0.5s'
     }
-  }, activeSlide + 1, "/3"), [0, 1, 2].map(i => /*#__PURE__*/React.createElement("div", {
+  }, activeSlide + 1, "/", slides.length), slides.map((_, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       width: '1px',
@@ -2395,7 +2387,7 @@ function TypiqueSite() {
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('TOUT');
+  const [activeCategory, setActiveCategory] = useState('NOUVEAU');
   const [notifEmail, setNotifEmail] = useState('');
   const [notifSubmitted, setNotifSubmitted] = useState(false);
   const [detailProduct, setDetailProduct] = useState(null);
@@ -2458,7 +2450,41 @@ function TypiqueSite() {
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
 
   // ---- PRODUCTS ----
-  const products = [{
+  const products = [
+  // Ordre d'affichage : t-shirts manches courtes, manches longues, Plein cagnard, hoodies, accessoires.
+  // Dans chaque groupe, le Drop 02 passe avant le Drop 01. « nouveau » = affiché dans l'onglet Nouvelle collection.
+  // Drop 02 : prix, tailles et textes pas encore fixés. Sans identifiant dans SHOPIFY_IDS, une pièce reste en « Bientôt disponible ».
+  {
+    id: 'ts-estaque',
+    cat: 'T-SHIRTS',
+    nouveau: true,
+    name: "L'Estaque",
+    price: '',
+    priceNum: 0,
+    sizes: [],
+    color: {
+      hex: '#F7F6F3',
+      label: 'Blanc'
+    },
+    desc: '',
+    photos: [ESTAQUE_AVANT, ESTAQUE_ARRIERE],
+    bg: '#E8E3DB'
+  }, {
+    id: 'ts-pinede',
+    cat: 'T-SHIRTS',
+    nouveau: true,
+    name: 'La Pinède',
+    price: '',
+    priceNum: 0,
+    sizes: [],
+    color: {
+      hex: '#EDE8DF',
+      label: 'Crème'
+    },
+    desc: '',
+    photos: [PINEDE_AVANT, PINEDE_ARRIERE],
+    bg: '#E8E3DB'
+  }, {
     id: 'ts-ferret',
     ref: 'TS 01',
     cat: 'T-SHIRTS',
@@ -2472,7 +2498,7 @@ function TypiqueSite() {
       label: 'Gris'
     },
     desc: "Le t-shirt en hommage au Cap, aux étés qui ne finissent pas, aux maisons avec tant de souvenirs qu\'on ne veut plus quitter.",
-    photos: [FERRET_AVANT, FERRET_ARRIERE, FERRET_P1, FERRET_P2, FERRET_P3, FERRET_P4],
+    photos: [FERRET_AVANT, FERRET_ARRIERE],
     mockup: /*#__PURE__*/React.createElement(TshirtMockup, {
       bodyColor: "#3A3D44",
       letterColor: "#F4F1EC",
@@ -2499,7 +2525,7 @@ function TypiqueSite() {
       letterStroke: "rgba(244,241,236,0.4)"
     }),
     bg: '#E0DDD3',
-    photos: [...(typeof ENTREDEUX_AVANT !== 'undefined' ? [ENTREDEUX_AVANT] : []), ...(typeof ENTREDEUX_ARRIERE !== 'undefined' ? [ENTREDEUX_ARRIERE] : []), ...(typeof ENTREDEUX_P3 !== 'undefined' ? [ENTREDEUX_P3] : []), ...(typeof ENTREDEUX_P4 !== 'undefined' ? [ENTREDEUX_P4] : [])].filter(Boolean)
+    photos: [ENTREDEUX_AVANT, ENTREDEUX_ARRIERE]
   }, {
     id: 'ts-sable',
     ref: 'TS 03',
@@ -2514,13 +2540,88 @@ function TypiqueSite() {
       label: 'Crème'
     },
     desc: 'Le plus discret de la collection. Des vêtements simples et épurés, comme on aime.',
-    photos: [SABLE_NOUVEAU, SABLE_P1, SABLE_P2],
+    photos: [SABLE_AVANT, SABLE_ARRIERE],
     mockup: /*#__PURE__*/React.createElement(TshirtMockup, {
       bodyColor: "#C4B49A",
       letterColor: "#E39A7C",
       letterStroke: "rgba(227,154,124,0.3)"
     }),
     bg: '#EDE7DC'
+  }, {
+    id: 'ts-soleilcouchant',
+    cat: 'MANCHES LONGUES',
+    nouveau: true,
+    name: 'Soleil couchant',
+    price: '',
+    priceNum: 0,
+    sizes: [],
+    color: {
+      hex: '#5A2430',
+      label: 'Bordeaux'
+    },
+    desc: '',
+    photos: [SOLEILCOUCHANT_AVANT, SOLEILCOUCHANT_ARRIERE],
+    bg: '#E8E3DB'
+  }, {
+    id: 'ts-petitmatin',
+    cat: 'MANCHES LONGUES',
+    nouveau: true,
+    name: 'Petit matin',
+    price: '',
+    priceNum: 0,
+    sizes: [],
+    color: {
+      hex: '#F7F6F3',
+      label: 'Blanc'
+    },
+    desc: '',
+    photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE],
+    bg: '#E8E3DB'
+  }, {
+    id: 'sw-pleincagnard',
+    cat: 'SWEATS',
+    nouveau: true,
+    name: 'Plein cagnard',
+    price: '',
+    priceNum: 0,
+    sizes: [],
+    color: {
+      hex: '#EDE8DF',
+      label: 'Crème'
+    },
+    desc: '',
+    photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE],
+    bg: '#E8E3DB'
+  }, {
+    id: 'sw-minot',
+    cat: 'SWEATS',
+    nouveau: true,
+    name: 'Le Minot du Sud',
+    price: '',
+    priceNum: 0,
+    sizes: [],
+    color: {
+      hex: '#2F2F31',
+      label: 'Anthracite'
+    },
+    desc: '',
+    photos: [MINOT_AVANT, MINOT_ARRIERE],
+    bg: '#E8E3DB'
+  }, {
+    id: 'sw-corpssale',
+    cat: 'SWEATS',
+    nouveau: true,
+    name: 'Corps Salé Coeur Solaire',
+    price: '',
+    priceNum: 0,
+    sizes: [],
+    color: {
+      hex: '#7E5A55',
+      label: 'Brun rosé'
+    },
+    desc: '',
+    photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE],
+    bg: '#E8E3DB'
   }, {
     id: 'sw-mistral',
     ref: 'SW 01',
@@ -2531,11 +2632,11 @@ function TypiqueSite() {
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
     color: {
-      hex: '#1A2B5E',
+      hex: '#1A1A1A',
       label: 'Noir'
     },
     desc: "Après que le mistral est tout emporté, il ne reste que la simplicité et l'authenticité.",
-    photos: [MISTRAL_AVANT, MISTRAL_R2, MISTRAL_R3],
+    photos: [MISTRAL_AVANT, MISTRAL_ARRIERE],
     mockup: /*#__PURE__*/React.createElement(HoodieMockup, {
       bodyColor: "#1A2B5E",
       letterColor: "#F4F1EC"
@@ -2555,7 +2656,7 @@ function TypiqueSite() {
       label: 'Crème'
     },
     desc: "Comme une cabane tchanquée au coucher du soleil. Trois fois Typique pour les jours qui comptent triple sur le bassin.",
-    photos: [TCHANQUEE_AVANT, TCHANQUEE_ARRIERE, TCHANQUEE_P1, TCHANQUEE_P2, TCHANQUEE_P3],
+    photos: [TCHANQUEE_AVANT, TCHANQUEE_ARRIERE],
     mockup: /*#__PURE__*/React.createElement(HoodieMockup, {
       bodyColor: "#F4F1EC",
       letterColor: "#0F2865"
@@ -2575,7 +2676,7 @@ function TypiqueSite() {
       label: 'Bleu nuit'
     },
     desc: "Bleu marine pour les matins de session, quand l'eau est encore froide et que personne n'a vu la lumière.",
-    photos: [SURFER_AVANT, SURFER_ARRIERE, SURFER_R1, SURFER_R2, SURFER_R3, SURFER_R4],
+    photos: [SURFER_AVANT, SURFER_ARRIERE],
     mockup: /*#__PURE__*/React.createElement(HoodieMockup, {
       bodyColor: "#0F2236",
       letterColor: "#F4F1EC"
@@ -2622,14 +2723,16 @@ function TypiqueSite() {
     }),
     bg: '#DDE0D5'
   }];
-  const categories = ['TOUT', 'T-SHIRTS', 'SWEATS', 'ACCESSOIRES'];
+  const categories = ['NOUVEAU', 'T-SHIRTS', 'MANCHES LONGUES', 'SWEATS', 'ACCESSOIRES'];
   const categoryLabels = {
-    'TOUT': 'TOUT',
+    'NOUVEAU': 'NOUVELLE COLLECTION',
     'T-SHIRTS': 'T-SHIRTS',
+    'MANCHES LONGUES': 'MANCHES LONGUES',
     'SWEATS': 'HOODIES',
     'ACCESSOIRES': 'ACCESSOIRES'
   };
-  const filteredProducts = activeCategory === 'TOUT' ? products : products.filter(p => p.cat === activeCategory);
+  // Par défaut : la nouvelle collection seule. Les anciennes pièces apparaissent dans leur catégorie.
+  const filteredProducts = activeCategory === 'NOUVEAU' ? products.filter(p => p.nouveau) : products.filter(p => p.cat === activeCategory);
   const lexique = ['garrigue', 'baïne', 'mistral', 'tchanquée', 'restanque', 'cachotte', 'farigoule', 'la leyre'];
   return /*#__PURE__*/React.createElement("div", {
     className: "min-h-screen w-full",
@@ -2794,7 +2897,7 @@ function TypiqueSite() {
         }
         /* 100vh = grande hauteur d'écran (barre iOS masquée) : stable, couvre tout l'écran.
            Le contenu est centré dans la petite hauteur (svh) pour rester visible barre affichée. */
-        .showcase-track { height: 300vh; }
+        .showcase-track { height: 400vh; }
         .showcase-sticky { height: 100vh; }
         .showcase-content { height: 100vh; height: 100svh; }
 
@@ -3020,19 +3123,14 @@ function TypiqueSite() {
     className: "max-w-6xl mx-auto"
   }, /*#__PURE__*/React.createElement(Reveal, null, /*#__PURE__*/React.createElement("div", {
     className: "text-center mb-14"
-  }, /*#__PURE__*/React.createElement("p", {
-    className: "font-typewriter text-xs tracking-[0.4em] mb-4",
-    style: {
-      color: '#E39A7C'
-    }
-  }, "II. BOUTIQUE"), /*#__PURE__*/React.createElement("h2", {
+  }, /*#__PURE__*/React.createElement("h2", {
     className: "font-serif-fine italic",
     style: {
       fontSize: 'clamp(2rem,4vw,3.2rem)',
       color: '#0F2865',
       letterSpacing: '0.02em'
     }
-  }, "La premi\xE8re collection"), /*#__PURE__*/React.createElement("p", {
+  }, "La nouvelle collection"), /*#__PURE__*/React.createElement("p", {
     className: "font-serif mt-4 text-base md:text-lg max-w-md mx-auto",
     style: {
       color: '#0F2865',
@@ -3166,12 +3264,7 @@ function TypiqueSite() {
     className: "histoire-text flex items-center order-2 lg:order-2 px-8 md:px-16 lg:px-20 py-14 md:py-20 lg:py-32"
   }, /*#__PURE__*/React.createElement(Reveal, null, /*#__PURE__*/React.createElement("div", {
     className: "max-w-xl"
-  }, /*#__PURE__*/React.createElement("p", {
-    className: "font-typewriter text-xs tracking-[0.4em] mb-6",
-    style: {
-      color: '#E39A7C'
-    }
-  }, "III. NOTRE HISTOIRE"), /*#__PURE__*/React.createElement("h2", {
+  }, /*#__PURE__*/React.createElement("h2", {
     className: "font-serif-fine italic mb-10",
     style: {
       fontSize: 'clamp(1.8rem, 3.4vw, 2.8rem)',
@@ -3231,12 +3324,7 @@ function TypiqueSite() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "max-w-2xl mx-auto text-center"
-  }, /*#__PURE__*/React.createElement(Reveal, null, /*#__PURE__*/React.createElement("p", {
-    className: "font-typewriter text-xs tracking-[0.4em] mb-6",
-    style: {
-      color: '#E39A7C'
-    }
-  }, "IV. ALERTES DROPS"), /*#__PURE__*/React.createElement("h2", {
+  }, /*#__PURE__*/React.createElement(Reveal, null, /*#__PURE__*/React.createElement("h2", {
     className: "font-serif-fine italic leading-tight mb-6",
     style: {
       fontSize: 'clamp(2rem,4.5vw,3.4rem)',
@@ -3318,13 +3406,7 @@ function TypiqueSite() {
     style: {
       opacity: 0.7
     }
-  }, "entre sel et soleil"), /*#__PURE__*/React.createElement("p", {
-    className: "font-serif-fine italic text-xs leading-loose",
-    style: {
-      color: '#E39A7C',
-      opacity: 0.85
-    }
-  }, lexique.join(' · '))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+  }, "entre sel et soleil")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
     className: "font-typewriter text-xs tracking-[0.35em] uppercase mb-6",
     style: {
       opacity: 0.55

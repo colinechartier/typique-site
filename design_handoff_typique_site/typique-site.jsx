@@ -652,13 +652,6 @@ function DefinitionSection() {
       style={{ backgroundColor: '#F4F1EC' }}>
       
       <div className="max-w-2xl mx-auto text-center">
-        {/* Petit cap + numéro de page (pas tapé à la machine) */}
-        <div className="flex items-center justify-center gap-4 mb-12 opacity-50">
-          <div className="h-px w-12" style={{ background: '#0F2865' }} />
-          <span className="font-typewriter text-xs tracking-[0.4em]" style={{ color: '#0F2865' }}>I.</span>
-          <div className="h-px w-12" style={{ background: '#0F2865' }} />
-        </div>
-
         {/* Texte accessible complet pour les lecteurs d'écran */}
         <span className="sr-only">{fullDef}</span>
 
@@ -1010,7 +1003,7 @@ function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
   const [selectedSize, setSelectedSize] = useState(p.sizes[0]);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const isOpen = dropStatus === 'active_1' || dropStatus === 'active_2';
+  const isOpen = (dropStatus === 'active_1' || dropStatus === 'active_2') && !!SHOPIFY_IDS[p.id];
   const hasPhotos = p.photos && p.photos.length > 0;
 
   const handleAdd = (e) => {
@@ -1092,9 +1085,9 @@ function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
                   }}>{s}</button>
               ))}
             </div>
-          ) : (
+          ) : p.sizes.length === 1 ? (
             <p className="font-typewriter text-[11px] tracking-wider mb-4" style={{ opacity: 0.45 }}>Taille unique</p>
-          )}
+          ) : null}
           <div className="flex items-center justify-between">
             <span className="font-serif text-xl">{p.price}</span>
             <button onClick={handleAdd}
@@ -1123,7 +1116,7 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const isOpen = dropStatus === 'active_1' || dropStatus === 'active_2';
+  const isOpen = (dropStatus === 'active_1' || dropStatus === 'active_2') && !!SHOPIFY_IDS[p.id];
   const hasPhotos = p.photos && p.photos.length > 0;
 
   // Fermer avec Échap + bouton retour navigateur
@@ -1250,9 +1243,9 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
                     }}>{s}</button>
                 ))}
               </div>
-            ) : (
+            ) : p.sizes.length === 1 ? (
               <p className="font-typewriter text-[11px] tracking-wider mb-6" style={{ opacity: 0.45 }}>Taille unique</p>
-            )}
+            ) : null}
 
             {/* Prix + CTA */}
             <div className="flex items-center justify-between mt-auto">
@@ -1305,7 +1298,7 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
 }
 
 // ============================================================
-// BOUTIQUE SHOWCASE — sticky scroll (3 slides)
+// BOUTIQUE SHOWCASE — sticky scroll (une slide par catégorie)
 // ============================================================
 function BoutiqueShowcase({ onSelectCategory }) {
   const [activeSlide, setActiveSlide] = React.useState(0);
@@ -1324,7 +1317,7 @@ function BoutiqueShowcase({ onSelectCategory }) {
         const scrolled = Math.max(0, -rect.top);
         const maxScroll = containerH - viewH;
         const progress = maxScroll > 0 ? Math.min(1, scrolled / maxScroll) : 0;
-        const next = progress < 0.333 ? 0 : progress < 0.666 ? 1 : 2;
+        const next = Math.min(slides.length - 1, Math.floor(progress * slides.length));
         setActiveSlide(prev => prev !== next ? next : prev);
       });
     }
@@ -1344,6 +1337,18 @@ function BoutiqueShowcase({ onSelectCategory }) {
       photo: typeof TSHIRT_SHOWCASE !== 'undefined' ? TSHIRT_SHOWCASE : (typeof FERRET_P1 !== 'undefined' ? FERRET_P1 : null),
       photoPosition: 'center center',
       brightness: 0.38,
+    },
+    {
+      bg: '#5A2430',
+      textColor: '#F4F1EC',
+      accentColor: '#E39A7C',
+      label: 'Manches longues',
+      catKey: 'MANCHES LONGUES',
+      ctaLabel: 'Voir les manches longues',
+      photo: SOLEILCOUCHANT_ARRIERE,
+      photoPosition: 'center center',
+      brightness: 0.38,
+      wrap: true, // deux mots : passe sur deux lignes sur téléphone
     },
     {
       bg: '#0F2865',
@@ -1435,7 +1440,7 @@ function BoutiqueShowcase({ onSelectCategory }) {
                     opacity: isActive ? 1 : 0.2,
                     transition: 'font-size 0.65s cubic-bezier(0.4,0,0.2,1), opacity 0.65s cubic-bezier(0.4,0,0.2,1)',
                     letterSpacing: '-0.01em',
-                    whiteSpace: 'nowrap',
+                    whiteSpace: s.wrap ? 'normal' : 'nowrap',
                     cursor: 'default',
                     userSelect: 'none',
                   }}>
@@ -1489,9 +1494,9 @@ function BoutiqueShowcase({ onSelectCategory }) {
             color: slides[activeSlide].textColor, opacity: 0.45,
             marginBottom: '4px', transition: 'color 0.5s',
           }}>
-            {activeSlide + 1}/3
+            {activeSlide + 1}/{slides.length}
           </p>
-          {[0, 1, 2].map(i => (
+          {slides.map((_, i) => (
             <div key={i} style={{
               width: '1px',
               height: activeSlide === i ? '32px' : '12px',
@@ -1515,7 +1520,7 @@ function TypiqueSite() {
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('TOUT');
+  const [activeCategory, setActiveCategory] = useState('NOUVEAU');
   const [notifEmail, setNotifEmail] = useState('');
   const [notifSubmitted, setNotifSubmitted] = useState(false);
   const [detailProduct, setDetailProduct] = useState(null);
@@ -1560,6 +1565,21 @@ function TypiqueSite() {
 
   // ---- PRODUCTS ----
   const products = [
+    // Ordre d'affichage : t-shirts manches courtes, manches longues, Plein cagnard, hoodies, accessoires.
+    // Dans chaque groupe, le Drop 02 passe avant le Drop 01. « nouveau » = affiché dans l'onglet Nouvelle collection.
+    // Drop 02 : prix, tailles et textes pas encore fixés. Sans identifiant dans SHOPIFY_IDS, une pièce reste en « Bientôt disponible ».
+    {
+      id: 'ts-estaque', cat: 'T-SHIRTS', nouveau: true,
+      name: "L'Estaque", price: '', priceNum: 0, sizes: [],
+      color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
+      photos: [ESTAQUE_AVANT, ESTAQUE_ARRIERE], bg: '#E8E3DB'
+    },
+    {
+      id: 'ts-pinede', cat: 'T-SHIRTS', nouveau: true,
+      name: 'La Pinède', price: '', priceNum: 0, sizes: [],
+      color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
+      photos: [PINEDE_AVANT, PINEDE_ARRIERE], bg: '#E8E3DB'
+    },
     {
       id: 'ts-ferret', ref: 'TS 01', cat: 'T-SHIRTS',
       name: 'Le Ferret', price: '44 €', priceNum: 44,
@@ -1567,7 +1587,7 @@ function TypiqueSite() {
       sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
       color: { hex: '#3A3D44', label: 'Gris' },
       desc: "Le t-shirt en hommage au Cap, aux étés qui ne finissent pas, aux maisons avec tant de souvenirs qu\'on ne veut plus quitter.",
-      photos: [FERRET_AVANT, FERRET_ARRIERE, FERRET_P1, FERRET_P2, FERRET_P3, FERRET_P4],
+      photos: [FERRET_AVANT, FERRET_ARRIERE],
       mockup: <TshirtMockup bodyColor="#3A3D44" letterColor="#F4F1EC" letterStroke="#E39A7C" />, bg: '#E8E3DB'
     },
     {
@@ -1578,12 +1598,7 @@ function TypiqueSite() {
       color: { hex: '#6B6F4A', label: 'Kaki' },
       desc: 'Neuf mots dans le dos. Garrigue, baïne, mistral, tchanquée. Tout ce qui fait typique, en une seule pièce.',
       mockup: <TshirtMockup bodyColor="#6B6F4A" letterColor="#F4F1EC" letterStroke="rgba(244,241,236,0.4)" />, bg: '#E0DDD3',
-      photos: [
-        ...(typeof ENTREDEUX_AVANT !== 'undefined' ? [ENTREDEUX_AVANT] : []),
-        ...(typeof ENTREDEUX_ARRIERE !== 'undefined' ? [ENTREDEUX_ARRIERE] : []),
-        ...(typeof ENTREDEUX_P3 !== 'undefined' ? [ENTREDEUX_P3] : []),
-        ...(typeof ENTREDEUX_P4 !== 'undefined' ? [ENTREDEUX_P4] : []),
-      ].filter(Boolean)
+      photos: [ENTREDEUX_AVANT, ENTREDEUX_ARRIERE]
     },
     {
       id: 'ts-sable', ref: 'TS 03', cat: 'T-SHIRTS',
@@ -1592,17 +1607,47 @@ function TypiqueSite() {
       sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
       color: { hex: '#D6C8B4', label: 'Crème' },
       desc: 'Le plus discret de la collection. Des vêtements simples et épurés, comme on aime.',
-      photos: [SABLE_NOUVEAU, SABLE_P1, SABLE_P2],
+      photos: [SABLE_AVANT, SABLE_ARRIERE],
       mockup: <TshirtMockup bodyColor="#C4B49A" letterColor="#E39A7C" letterStroke="rgba(227,154,124,0.3)" />, bg: '#EDE7DC'
+    },
+    {
+      id: 'ts-soleilcouchant', cat: 'MANCHES LONGUES', nouveau: true,
+      name: 'Soleil couchant', price: '', priceNum: 0, sizes: [],
+      color: { hex: '#5A2430', label: 'Bordeaux' }, desc: '',
+      photos: [SOLEILCOUCHANT_AVANT, SOLEILCOUCHANT_ARRIERE], bg: '#E8E3DB'
+    },
+    {
+      id: 'ts-petitmatin', cat: 'MANCHES LONGUES', nouveau: true,
+      name: 'Petit matin', price: '', priceNum: 0, sizes: [],
+      color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
+      photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE], bg: '#E8E3DB'
+    },
+    {
+      id: 'sw-pleincagnard', cat: 'SWEATS', nouveau: true,
+      name: 'Plein cagnard', price: '', priceNum: 0, sizes: [],
+      color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
+      photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE], bg: '#E8E3DB'
+    },
+    {
+      id: 'sw-minot', cat: 'SWEATS', nouveau: true,
+      name: 'Le Minot du Sud', price: '', priceNum: 0, sizes: [],
+      color: { hex: '#2F2F31', label: 'Anthracite' }, desc: '',
+      photos: [MINOT_AVANT, MINOT_ARRIERE], bg: '#E8E3DB'
+    },
+    {
+      id: 'sw-corpssale', cat: 'SWEATS', nouveau: true,
+      name: 'Corps Salé Coeur Solaire', price: '', priceNum: 0, sizes: [],
+      color: { hex: '#7E5A55', label: 'Brun rosé' }, desc: '',
+      photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-mistral', ref: 'SW 01', cat: 'SWEATS',
       name: 'Le Mistral', price: '75 €', priceNum: 75,
       sizes: ['XS','S','M','L','XL','XXL'],
       sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
-      color: { hex: '#1A2B5E', label: 'Noir' },
+      color: { hex: '#1A1A1A', label: 'Noir' },
       desc: "Après que le mistral est tout emporté, il ne reste que la simplicité et l'authenticité.",
-      photos: [MISTRAL_AVANT, MISTRAL_R2, MISTRAL_R3],
+      photos: [MISTRAL_AVANT, MISTRAL_ARRIERE],
       mockup: <HoodieMockup bodyColor="#1A2B5E" letterColor="#F4F1EC" />, bg: '#D8DCE8'
     },
     {
@@ -1612,7 +1657,7 @@ function TypiqueSite() {
       sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
       color: { hex: '#EDE8DF', label: 'Crème' },
       desc: "Comme une cabane tchanquée au coucher du soleil. Trois fois Typique pour les jours qui comptent triple sur le bassin.",
-      photos: [TCHANQUEE_AVANT, TCHANQUEE_ARRIERE, TCHANQUEE_P1, TCHANQUEE_P2, TCHANQUEE_P3],
+      photos: [TCHANQUEE_AVANT, TCHANQUEE_ARRIERE],
       mockup: <HoodieMockup bodyColor="#F4F1EC" letterColor="#0F2865" />, bg: '#E5DFD3'
     },
     {
@@ -1622,7 +1667,7 @@ function TypiqueSite() {
       sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
       color: { hex: '#0F1E36', label: 'Bleu nuit' },
       desc: "Bleu marine pour les matins de session, quand l'eau est encore froide et que personne n'a vu la lumière.",
-      photos: [SURFER_AVANT, SURFER_ARRIERE, SURFER_R1, SURFER_R2, SURFER_R3, SURFER_R4],
+      photos: [SURFER_AVANT, SURFER_ARRIERE],
       mockup: <HoodieMockup bodyColor="#0F2236" letterColor="#F4F1EC" />, bg: '#CDD2DE'
     },
     {
@@ -1645,9 +1690,10 @@ function TypiqueSite() {
     },
   ];
 
-  const categories = ['TOUT', 'T-SHIRTS', 'SWEATS', 'ACCESSOIRES'];
-  const categoryLabels = { 'TOUT': 'TOUT', 'T-SHIRTS': 'T-SHIRTS', 'SWEATS': 'HOODIES', 'ACCESSOIRES': 'ACCESSOIRES' };
-  const filteredProducts = activeCategory === 'TOUT' ? products : products.filter(p => p.cat === activeCategory);
+  const categories = ['NOUVEAU', 'T-SHIRTS', 'MANCHES LONGUES', 'SWEATS', 'ACCESSOIRES'];
+  const categoryLabels = { 'NOUVEAU': 'NOUVELLE COLLECTION', 'T-SHIRTS': 'T-SHIRTS', 'MANCHES LONGUES': 'MANCHES LONGUES', 'SWEATS': 'HOODIES', 'ACCESSOIRES': 'ACCESSOIRES' };
+  // Par défaut : la nouvelle collection seule. Les anciennes pièces apparaissent dans leur catégorie.
+  const filteredProducts = activeCategory === 'NOUVEAU' ? products.filter(p => p.nouveau) : products.filter(p => p.cat === activeCategory);
 
   const lexique = ['garrigue', 'baïne', 'mistral', 'tchanquée', 'restanque', 'cachotte', 'farigoule', 'la leyre'];
 
@@ -1820,7 +1866,7 @@ function TypiqueSite() {
         }
         /* 100vh = grande hauteur d'écran (barre iOS masquée) : stable, couvre tout l'écran.
            Le contenu est centré dans la petite hauteur (svh) pour rester visible barre affichée. */
-        .showcase-track { height: 300vh; }
+        .showcase-track { height: 400vh; }
         .showcase-sticky { height: 100vh; }
         .showcase-content { height: 100vh; height: 100svh; }
 
@@ -2048,11 +2094,8 @@ function TypiqueSite() {
         <div className="max-w-6xl mx-auto">
           <Reveal>
             <div className="text-center mb-14">
-              <p className="font-typewriter text-xs tracking-[0.4em] mb-4" style={{ color: '#E39A7C' }}>
-                II. BOUTIQUE
-              </p>
               <h2 className="font-serif-fine italic" style={{ fontSize: 'clamp(2rem,4vw,3.2rem)', color: '#0F2865', letterSpacing: '0.02em' }}>
-                La première collection
+                La nouvelle collection
               </h2>
               <p className="font-serif mt-4 text-base md:text-lg max-w-md mx-auto" style={{ color: '#0F2865', opacity: 0.65 }}>
                 Toutes oversize. Toutes brodées. Toutes pensées entre deux côtes.
@@ -2176,10 +2219,6 @@ function TypiqueSite() {
           <div className="histoire-text flex items-center order-2 lg:order-2 px-8 md:px-16 lg:px-20 py-14 md:py-20 lg:py-32">
             <Reveal>
               <div className="max-w-xl">
-                <p className="font-typewriter text-xs tracking-[0.4em] mb-6" style={{ color: '#E39A7C' }}>
-                  III. NOTRE HISTOIRE
-                </p>
-
                 <h2
                   className="font-serif-fine italic mb-10"
                   style={{ fontSize: 'clamp(1.8rem, 3.4vw, 2.8rem)', lineHeight: 1.2 }}>
@@ -2243,9 +2282,6 @@ function TypiqueSite() {
       <section id="alertes" className="relative py-28 md:py-40 px-6 grain" style={{ backgroundColor: '#0F2865', color: '#F4F1EC' }}>
         <div className="max-w-2xl mx-auto text-center">
           <Reveal>
-            <p className="font-typewriter text-xs tracking-[0.4em] mb-6" style={{ color: '#E39A7C' }}>
-              IV. ALERTES DROPS
-            </p>
             <h2 className="font-serif-fine italic leading-tight mb-6" style={{ fontSize: 'clamp(2rem,4.5vw,3.4rem)', color: '#F4F1EC' }}>
               Ne rate pas<br />le prochain drop.
             </h2>
@@ -2302,14 +2338,11 @@ function TypiqueSite() {
       <footer className="relative py-20 md:py-24 px-6 grain" style={{ backgroundColor: '#0A1F3D', color: '#F4F1EC' }}>
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-14 md:gap-10">
-            {/* Colonne 1 — Logo + lexique */}
+            {/* Colonne 1 — Logo */}
             <div>
               <p className="font-typewriter text-3xl mb-3">typique</p>
               <p className="font-serif-fine italic text-base mb-8" style={{ opacity: 0.7 }}>
                 entre sel et soleil
-              </p>
-              <p className="font-serif-fine italic text-xs leading-loose" style={{ color: '#E39A7C', opacity: 0.85 }}>
-                {lexique.join(' · ')}
               </p>
             </div>
 

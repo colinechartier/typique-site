@@ -25,6 +25,7 @@ import hashlib
 import html as htmllib
 import json
 import os
+import platform
 import shutil
 import stat
 import subprocess
@@ -42,9 +43,14 @@ CACHE = os.path.join(ROOT, ".cache")
 JSC = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
 BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
 BABEL = os.path.join(CACHE, "babel.min.js")
-TAILWIND_URL = "https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.17/tailwindcss-macos-x64"
-TAILWIND_SHA256 = "6cbdad74be776c087ffa5e9a057512c54898f9fe8828d3362212dfe32fc933a3"
-TAILWIND = os.path.join(CACHE, "tailwind", "tailwindcss")
+# Binaire Tailwind adapté au processeur du Mac (puce Apple ou Intel)
+TAILWIND_ARCH = "arm64" if platform.machine() == "arm64" else "x64"
+TAILWIND_URL = "https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.17/tailwindcss-macos-" + TAILWIND_ARCH
+TAILWIND_SHA256 = {
+    "arm64": "a1d0c7985759accca0bf12e51ac1dcbf0f6cf2fffb62e6e0f62d091c477a10a3",
+    "x64": "6cbdad74be776c087ffa5e9a057512c54898f9fe8828d3362212dfe32fc933a3",
+}[TAILWIND_ARCH]
+TAILWIND = os.path.join(CACHE, "tailwind", "tailwindcss-" + TAILWIND_ARCH)
 JSX = os.path.join(SRC, "typique-site.jsx")
 ASSET_DIRS = ["photos", "media"]
 APERCU = os.path.join(ROOT, "apercu")
