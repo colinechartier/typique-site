@@ -228,10 +228,14 @@ function Reveal({ children, delay = 0, className = '' }) {
 }
 
 // ---------- Compte à rebours ----------
+// Heure de confiance du site : celle du serveur (horloge.js, copiée dans la page par tools/build.py).
+// L'heure de l'appareil seulement si l'horloge est absente.
+const maintenant = () => (window.HORLOGE ? window.HORLOGE.maintenant() : Date.now());
+
 // Isolé dans son propre composant : seul lui se redessine chaque seconde, pas tout le site.
 function CountdownDigits({ target, color, onExpire }) {
   const calc = () => {
-    const diff = target - new Date();
+    const diff = target - maintenant();
     if (diff <= 0) return null;
     return {
       j: Math.floor(diff / 86400000),
@@ -1530,13 +1534,15 @@ function TypiqueSite() {
   // ---- DROP CONFIG ----
   // Dates, pièces en vente et identifiants Shopify viennent de reglage-drop.ini (lu par tools/build.py, variable DROP_REGLAGE).
   const DROP = { nom: DROP_REGLAGE.nom, start: new Date(DROP_REGLAGE.ouverture), end: new Date(DROP_REGLAGE.fermeture) };
-  const now = new Date();
+  const now = maintenant();
   const dropStatus = now < DROP.start ? 'before' : now <= DROP.end ? 'active' : 'closed';
 
   // ---- COUNTDOWN ----
   // Le décompte vit dans <CountdownDigits> ; à son terme il force un re-rendu pour basculer le statut du drop.
   const [, setDropTick] = useState(0);
   const refreshDropStatus = () => setDropTick(t => t + 1);
+  // L'horloge se recale sur le serveur après l'affichage : le statut du drop est alors recalculé.
+  useEffect(() => (window.HORLOGE ? window.HORLOGE.surChangement(refreshDropStatus) : undefined), []);
 
   // ---- CART ----
   const addToCart = (product, size) => {
@@ -2402,14 +2408,26 @@ function TypiqueSite() {
 }
 
 // ---------- Mount ----------
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<TypiqueSite />);
+// /apercu/ : la boutique s'affiche tout de suite. Accueil (index.html) : la page d'accueil charge ce fichier à l'avance,
+// puis appelle TYPIQUE_BOUTIQUE.monter() à l'heure d'ouverture et .demonter() à la fermeture.
+let root = null;
+function monterBoutique() {
+  if (root) return;
+  root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<TypiqueSite />);
 
-// Cacher l'écran de chargement une fois React monté
-(function() {
+  // Cacher l'écran de chargement une fois React monté
   var el = document.getElementById('loading-screen');
   if (el) {
     el.classList.add('hide');
     setTimeout(function() { el.style.display = 'none'; }, 700);
   }
-})();
+}
+function demonterBoutique() {
+  if (!root) return;
+  root.unmount();
+  root = null;
+  document.body.style.overflow = '';
+}
+if (window.TYPIQUE_ACCUEIL) window.TYPIQUE_BOUTIQUE = { monter: monterBoutique, demonter: demonterBoutique };
+else monterBoutique();

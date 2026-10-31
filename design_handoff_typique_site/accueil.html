@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-vue="attente">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +15,23 @@
 <link rel="preload" as="style" href="{{fonts_attente}}" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="{{fonts_attente}}"></noscript>
 <link rel="preload" as="image" href="{{asset:media/hero-poster.webp}}" fetchpriority="high">
-<style>
+<script>{{horloge}}</script>
+<script>
+  // Réglage du drop, écrit par tools/build.py d'après reglage-drop.ini (heures en millisecondes).
+  // mode : « automatique » (réglage normal), « attente » (boutique jamais montrée) ou « boutique » (toujours montrée).
+  var ACCUEIL = {{drop_json}};
+  // Les trois états de l'accueil, d'après l'heure donnée : avant l'ouverture, drop ouvert, après la fermeture.
+  // En mode « attente », un drop ouvert s'appelle « pause » (page d'attente avec un autre texte).
+  function etatDuDrop(ms) {
+    if (ACCUEIL.mode === 'boutique') return 'ouvert';
+    var e = ms < ACCUEIL.ouverture ? 'avant' : ms <= ACCUEIL.fermeture ? 'ouvert' : 'apres';
+    return e === 'ouvert' && ACCUEIL.mode === 'attente' ? 'pause' : e;
+  }
+  // Première estimation avec l'heure de l'appareil, corrigée dès que celle du serveur arrive : si le drop semble ouvert,
+  // on montre tout de suite l'écran de chargement de la boutique plutôt qu'un éclair de page d'attente.
+  if (etatDuDrop(HORLOGE.maintenant()) === 'ouvert') document.documentElement.setAttribute('data-vue', 'entree');
+</script>
+<style id="css-attente">
   :root {
     --navy: #0F2865; --navy-deep: #0A1F3D; --cream: #F4F1EC; --terra: #E39A7C;
     --gutter: clamp(16px, 3vw, 36px);
@@ -99,17 +115,24 @@
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; }
   }
 </style>
+<style id="css-shell">
+  {{ecran_css}}
+  /* Les trois vues de l'accueil : attente (page d'attente), entree (écran de chargement), boutique */
+  [data-vue="entree"] #attente, [data-vue="boutique"] #attente { display: none; }
+  [data-vue="attente"] #loading-screen { display: none; }
+</style>
 </head>
 <body>
+<div id="attente">
   <div class="stage" aria-hidden="true">
     <video id="v" autoplay muted loop playsinline preload="auto" poster="{{asset:media/hero-poster.webp}}"></video>
     <div class="veil"></div><div class="vignette"></div><div class="grain"></div>
   </div>
   <div class="frame"></div>
 
-  <p class="corner tl tw"><span class="dot"></span>{{drop_nom}} — en préparation</p>
+  <p class="corner tl tw" id="coin"><span class="dot"></span>{{drop_nom}} · en préparation</p>
   <p class="corner tr tw"><a href="https://instagram.com/typique.fr">@typique.fr</a></p>
-  <p class="corner bl tw">Mer Méditerranée &amp; Océan Atlantique</p>
+  <p class="corner bl tw" id="bas">Mer Méditerranée &amp; Océan Atlantique</p>
   <p class="corner br">entre sel et soleil</p>
 
   <main>
@@ -129,36 +152,105 @@
     <p class="merci" id="merci" hidden>C'est noté. Tu seras parmi les premiers prévenus.</p>
     <p class="erreur" id="erreur" hidden></p>
   </main>
+</div>
+
+  {{ecran_html}}
+  <div id="root"></div>
 
 <script>
-  // Vidéo : 540p sur mobile, 720p sinon
-  document.getElementById('v').src = matchMedia('(max-width: 767px)').matches ? '{{asset:media/hero-540.mp4}}' : '{{asset:media/hero-720.mp4}}';
+(function () {
+  const H = window.HORLOGE;
+  const html = document.documentElement;
+  const $ = id => document.getElementById(id);
+  const ENDPOINT = '{{alertes_endpoint}}';
+  const PRECHARGE_MS = 90 * 1000;   // la boutique se charge 90 s avant l'ouverture, pour arriver à l'heure pile
+  const RECALAGE_MS = 120 * 1000;   // l'horloge se recale sur le serveur dans les 2 minutes autour des heures clés
+  const lede = $('lede'), coin = $('coin'), quand = $('quand'), sub = $('sub'), bas = $('bas'), video = $('v');
+  const form = $('f'), erreur = $('erreur');
 
-  // Machine à écrire, puis apparition du texte et du formulaire
-  const texte = 'Le prochain drop arrive très bientôt.';
-  const lede = document.getElementById('lede');
-  const suite = () => ['quand', 'sub', 'f', 'rgpd', 'insta'].forEach(id => document.getElementById(id).classList.add('on'));
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { lede.textContent = texte; suite(); }
+  // ---------- Textes des états de la page d'attente ----------
+  // sub : sans formulaire d'alerte (Instagram) · subForm : avec formulaire (quand ALERTES_ENDPOINT est branché dans tools/build.py).
+  const TEXTES = {
+    avant: {
+      titre: document.title,
+      coin: ACCUEIL.nom + ' · en préparation',
+      lede: 'Le prochain drop arrive très bientôt.',
+      quand: 'Ouverture ' + ACCUEIL.ouvertureTexte,
+      sub: 'Avec des pièces encore plus typiques.<br>Suis-nous sur Instagram pour ne rien rater.',
+      subForm: "Avec des pièces encore plus typiques.<br>Laisse ton adresse, on t'envoie un mail dès l'ouverture.",
+      bas: bas.innerHTML
+    },
+    apres: {
+      titre: 'Typique · Merci',
+      coin: 'Merci',
+      lede: 'Merci, le drop est terminé.',
+      quand: 'Le prochain drop se prépare',
+      sub: 'Merci à toutes celles et ceux qui ont fait vivre ce drop.<br>Suis-nous sur Instagram pour ne pas rater le prochain.',
+      subForm: 'Merci à toutes celles et ceux qui ont fait vivre ce drop.<br>Laisse ton adresse pour ne pas rater le prochain.',
+      bas: ''
+    },
+    pause: {
+      titre: 'Typique · La boutique est fermée pour le moment',
+      coin: ACCUEIL.nom + ' · en pause',
+      lede: 'La boutique est fermée pour le moment.',
+      quand: '',
+      sub: 'Suis-nous sur Instagram pour savoir quand elle rouvre.',
+      subForm: 'Laisse ton adresse, on te prévient dès sa réouverture.',
+      bas: null
+    },
+    echec: {
+      titre: 'Typique · La boutique ne s\'est pas chargée',
+      coin: ACCUEIL.nom + ' · ouvert',
+      lede: "La boutique ne s'est pas chargée.",
+      quand: '',
+      sub: 'Vérifie ta connexion, puis recharge la page.',
+      subForm: 'Vérifie ta connexion, puis recharge la page.',
+      bas: null
+    }
+  };
+  TEXTES.pause.bas = TEXTES.echec.bas = TEXTES.avant.bas;
+
+  let texteLede = TEXTES.avant.lede;
+  let ledeFinie = false;
+  function afficherTextes(nom) {
+    const t = TEXTES[nom];
+    document.title = t.titre;
+    coin.lastChild.nodeValue = t.coin;
+    texteLede = t.lede;
+    if (ledeFinie) lede.textContent = t.lede;
+    quand.textContent = t.quand;
+    quand.hidden = !t.quand;
+    sub.innerHTML = ENDPOINT ? t.subForm : t.sub;
+    bas.innerHTML = t.bas;
+  }
+
+  // ---------- Page d'attente : vidéo, machine à écrire, formulaire ----------
+  let videoChargee = false;
+  function lireVideo() {
+    if (!videoChargee) { // 540p sur mobile, 720p sinon ; rien n'est téléchargé tant que la page d'attente n'est pas montrée
+      videoChargee = true;
+      video.src = matchMedia('(max-width: 767px)').matches ? '{{asset:media/hero-540.mp4}}' : '{{asset:media/hero-720.mp4}}';
+    }
+    const p = video.play(); if (p && p.catch) p.catch(() => {});
+  }
+
+  const suite = () => ['quand', 'sub', 'f', 'rgpd', 'insta'].forEach(id => $(id).classList.add('on'));
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { ledeFinie = true; lede.textContent = texteLede; suite(); }
   else {
     let i = 0;
     setTimeout(function taper() {
-      lede.textContent = texte.slice(0, ++i);
-      if (i < texte.length) setTimeout(taper, 55 + Math.random() * 70);
-      else setTimeout(() => { document.getElementById('cursor').style.display = 'none'; suite(); }, 900);
+      lede.textContent = texteLede.slice(0, ++i);
+      if (i < texteLede.length) setTimeout(taper, 55 + Math.random() * 70);
+      else { ledeFinie = true; setTimeout(() => { $('cursor').style.display = 'none'; suite(); }, 900); } // ledeFinie : le texte peut changer d'état
     }, 2300);
   }
 
   // Inscription aux alertes drop
-  const ENDPOINT = '{{alertes_endpoint}}';
-  const form = document.getElementById('f');
-  const erreur = document.getElementById('erreur');
-
   // Inscriptions pas encore branchées : on renvoie vers Instagram plutôt que de perdre des adresses
   if (!ENDPOINT) {
-    document.getElementById('sub').innerHTML = 'Avec des pièces encore plus typiques.<br>Suis-nous sur Instagram pour ne rien rater.';
     form.hidden = true;
-    document.getElementById('rgpd').hidden = true;
-    document.getElementById('insta').hidden = false;
+    $('rgpd').hidden = true;
+    $('insta').hidden = false;
   }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -166,18 +258,104 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { erreur.textContent = 'Cette adresse ne semble pas valide.'; erreur.hidden = false; return; }
     if (form.email_address_check.value) return; // robot
     erreur.hidden = true;
-    const bouton = document.getElementById('go');
+    const bouton = $('go');
     bouton.disabled = true; bouton.textContent = 'Envoi…';
     try {
       if (ENDPOINT) await fetch(ENDPOINT, { method: 'POST', body: new FormData(form), mode: 'no-cors' });
       else console.warn("Formulaire d'alertes non branché : ALERTES_ENDPOINT est vide dans tools/build.py");
-      form.hidden = true; document.getElementById('rgpd').hidden = true;
-      document.getElementById('merci').hidden = false;
+      form.hidden = true; $('rgpd').hidden = true;
+      $('merci').hidden = false;
     } catch (err) {
       bouton.disabled = false; bouton.textContent = 'Me prévenir →';
       erreur.textContent = "Oups, l'envoi n'a pas marché. Réessaie dans un instant."; erreur.hidden = false;
     }
   });
+
+  // ---------- La boutique : chargée en arrière-plan, montrée à l'heure d'ouverture ----------
+  const vue = v => html.setAttribute('data-vue', v);
+  const cssBoutique = () => $('css-boutique');
+  let chargement = null;   // promesse : feuille de style et scripts de la boutique sont là
+  let monte = false;       // la boutique est affichée
+
+  function charger() {
+    if (chargement) return chargement;
+    const R = ACCUEIL.ressources;
+    window.TYPIQUE_ACCUEIL = true; // app.js n'affiche pas la boutique tout seul : on appelle TYPIQUE_BOUTIQUE.monter()
+    const attendre = el => new Promise((ok, ko) => { el.onload = ok; el.onerror = () => ko(new Error('chargement impossible : ' + (el.href || el.src))); });
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.id = 'css-boutique'; css.href = R.css;
+    css.media = 'not all'; // téléchargée, mais pas appliquée avant l'heure
+    const fontes = document.createElement('link');
+    fontes.rel = 'stylesheet'; fontes.href = R.fontes;
+    const scripts = R.scripts.map(src => { // dans l'ordre : React, ReactDOM, puis la boutique
+      const s = document.createElement('script');
+      s.src = src; s.async = false;
+      return s;
+    });
+    const attentes = [css, ...scripts].map(attendre);
+    document.head.append(css, fontes, ...scripts);
+    chargement = Promise.all(attentes).then(() => {});
+    chargement.catch(() => { chargement = null; css.remove(); fontes.remove(); scripts.forEach(s => s.remove()); });
+    return chargement;
+  }
+
+  function montrerBoutique() {
+    vue('entree');
+    const ecran = $('loading-screen');
+    ecran.classList.remove('hide'); ecran.style.display = '';
+    video.pause();
+    let essais = 0;
+    const tenter = () => charger().then(
+      () => (ACCUEIL.mode === 'boutique' ? null : H.synchro)  // heure du serveur connue avant d'ouvrir
+    ).then(() => {
+      if (etatActuel !== 'ouvert') return;
+      if (etatDuDrop(H.maintenant()) !== 'ouvert') return verifier(); // l'appareil se trompait
+      cssBoutique().media = 'all';
+      $('css-attente').disabled = true;
+      window.scrollTo(0, 0);
+      window.TYPIQUE_BOUTIQUE.monter();
+      document.title = 'Typique · Entre sel et soleil';
+      monte = true;
+      vue('boutique');
+    }).catch(() => {
+      if (++essais < 3) setTimeout(() => { if (etatActuel === 'ouvert') tenter(); }, 4000);
+      else { vue('attente'); afficherTextes('echec'); lireVideo(); }
+    });
+    tenter();
+  }
+
+  function retirerBoutique() {
+    if (!monte) return;
+    window.TYPIQUE_BOUTIQUE.demonter();
+    monte = false;
+    cssBoutique().media = 'not all';
+    $('css-attente').disabled = false;
+  }
+
+  // ---------- Bascule d'un état à l'autre ----------
+  let etatActuel = null;
+  function appliquer(e) {
+    etatActuel = e;
+    if (e === 'ouvert') return montrerBoutique();
+    retirerBoutique();
+    vue('attente');
+    afficherTextes(e);
+    lireVideo();
+  }
+
+  function proche(ms, t) { return Math.abs(t - ms) < RECALAGE_MS; }
+  function verifier() {
+    const ms = H.maintenant(), e = etatDuDrop(ms);
+    if (e !== etatActuel) appliquer(e);
+    if (e === 'avant' && ACCUEIL.mode === 'automatique' && ACCUEIL.ouverture - ms < PRECHARGE_MS) charger().catch(() => {});
+    if (ACCUEIL.mode === 'automatique' && (proche(ms, ACCUEIL.ouverture) || proche(ms, ACCUEIL.fermeture))) H.synchroniser();
+  }
+
+  verifier();
+  H.synchro.then(verifier);   // l'heure du serveur est arrivée : la première estimation est peut-être à corriger
+  H.surChangement(verifier);
+  setInterval(verifier, 500);
+})();
 </script>
 </body>
 </html>

@@ -9,25 +9,13 @@
   <link rel="preload" as="style" href="{{fonts}}" onload="this.onload=null;this.rel='stylesheet'"/>
   <noscript><link rel="stylesheet" href="{{fonts}}"/></noscript>
   <link rel="preload" as="image" href="{{asset:media/hero-poster.webp}}" fetchpriority="high"/>
+  <script>{{horloge}}</script>
   <script defer src="{{asset:vendor/react.production.min.js}}"></script>
   <script defer src="{{asset:vendor/react-dom.production.min.js}}"></script>
   <script defer src="{{asset:app.js}}"></script>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
-    body{font-family:'Inter',sans-serif;background:#F4F1EC;color:#1a1a1a;overflow-x:hidden}
-    ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#F4F1EC}::-webkit-scrollbar-thumb{background:#C5BFB3;border-radius:3px}
-    #loading-screen{position:fixed;inset:0;background:#F4F1EC;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity 0.6s ease}
-    #loading-screen.hide{opacity:0;pointer-events:none}
-    #loading-bar-wrap{width:120px;height:1px;background:rgba(15,40,101,0.15);overflow:hidden}
-    #loading-bar{height:100%;width:0%;background:#0F2865;animation:loadprogress 2s cubic-bezier(0.4,0,0.2,1) forwards}
-    @keyframes loadprogress{0%{width:0%}70%{width:85%}100%{width:100%}}
-  </style>
-  <style>/*__TAILWIND__*/</style>
+  <link rel="stylesheet" href="{{asset:boutique.css}}"/>
+  <style>{{ecran_css}}</style>
 </head><body>
-  <div id="loading-screen">
-    <p style="font-family:monospace;letter-spacing:0.35em;color:#0F2865;font-size:0.7rem;text-transform:uppercase;opacity:0.8">typique</p>
-    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
-    <p style="font-family:monospace;letter-spacing:0.2em;color:#0F2865;font-size:0.6rem;text-transform:uppercase;opacity:0.4">entre sel et soleil</p>
-  </div>
+  {{ecran_html}}
   <div id="root"></div>
 </body></html>

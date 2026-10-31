@@ -2,13 +2,17 @@
 """Build du site Typique.
 
   python3 tools/build.py            # utilise MODE ci-dessous
-  python3 tools/build.py boutique   # force un mode
+  python3 tools/build.py attente    # interrupteur de secours : force un mode
+  python3 tools/build.py automatique   # arme la bascule automatique (bloc 11)
   python3 tools/build.py --reglage essai.ini   # lit un autre fichier de réglage (pour les essais)
 
-MODE :
-  "attente"  → l'accueil (index.html) est la page d'attente du prochain drop ;
-               le site complet reste en ligne sur /apercu/ (non référencé par Google).
-  "boutique" → l'accueil est le site complet (/apercu/ est retiré).
+MODE (l'accueil, index.html, a trois états : avant l'ouverture, drop ouvert, après la fermeture) :
+  "automatique" → réglage normal : l'accueil passe seul d'un état à l'autre aux heures de reglage-drop.ini,
+                  d'après l'heure du serveur (api/heure.js), sans recharger la page.
+  "attente"     → secours : la boutique n'est jamais montrée. Page d'attente avant l'ouverture,
+                  « boutique fermée pour le moment » pendant le drop, remerciement après.
+  "boutique"    → la boutique est toujours montrée (ses boutons d'achat restent réglés sur les dates).
+Le site complet reste toujours en ligne sur /apercu/ (non référencé par Google).
 Rien n'est jamais supprimé du code : on bascule simplement d'un mode à l'autre.
 
 Étapes :
@@ -19,8 +23,9 @@ Rien n'est jamais supprimé du code : on bascule simplement d'un mode à l'autre
 3. Génère le CSS Tailwind (seules les classes utilisées).
 4. Écrit app.js : une variable globale par fichier de photos/ et media/
    (ferret_avant.webp → FERRET_AVANT, hero-720.mp4 → HERO_720), le réglage du drop
-   (variable DROP_REGLAGE) + l'app compilée.
-5. Écrit les pages : site complet, page d'attente, mentions légales (/legal/).
+   (variable DROP_REGLAGE) + l'app compilée. Écrit boutique.css (styles de base + Tailwind).
+5. Écrit les pages : accueil (3 états), site complet (/apercu/), mentions légales (/legal/).
+   L'horloge de confiance (horloge.js) est copiée dans l'accueil et dans /apercu/.
 
 Chaque fichier référencé porte ?v=<empreinte> : le navigateur peut le garder en cache
 indéfiniment (voir vercel.json) et le recharge dès que son contenu change.
@@ -33,7 +38,6 @@ import json
 import os
 import platform
 import re
-import shutil
 import stat
 import subprocess
 import sys
@@ -43,7 +47,10 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 # ---------- Réglages ----------
-MODE = "attente"  # "attente" ou "boutique"
+# Mode du dépôt : "attente" jusqu'au bloc 11, qui passe à "automatique" (l'ouverture du drop ne s'arme qu'à ce moment-là).
+# "boutique" : secours. Pour un essai : python3 tools/build.py automatique
+MODE = "attente"
+MODES = ("automatique", "attente", "boutique")
 # Adresse qui reçoit les inscriptions aux alertes drop (formulaire Brevo, etc.). Vide = non branché.
 ALERTES_ENDPOINT = ""
 
@@ -63,6 +70,10 @@ TAILWIND_SHA256 = {
 TAILWIND = os.path.join(CACHE, "tailwind", "tailwindcss-" + TAILWIND_ARCH)
 JSX = os.path.join(SRC, "typique-site.jsx")
 ASSET_DIRS = ["photos", "media"]
+CSS_BASE = "boutique-base.css"
+BOUTIQUE_CSS = os.path.join(ROOT, "boutique.css")
+# Scripts de la boutique, dans l'ordre où l'accueil les charge
+BOUTIQUE_SCRIPTS = ["vendor/react.production.min.js", "vendor/react-dom.production.min.js", "app.js"]
 APERCU = os.path.join(ROOT, "apercu")
 FONTS = (
     "https://fonts.googleapis.com/css2"
@@ -150,10 +161,22 @@ def asset_vars():
     return "\n".join(lines)
 
 
+def lire_src(nom):
+    with open(os.path.join(SRC, nom), encoding="utf-8") as f:
+        texte = f.read().rstrip("\n")
+    if nom.endswith(".js"):  # script copié dans les pages : sans les lignes de commentaires (moins d'octets à télécharger)
+        texte = "\n".join(l for l in texte.split("\n") if not l.lstrip().startswith("//"))
+    return texte
+
+
 def render(template, extra=None):
-    """Remplit un gabarit : {{asset:chemin}}, {{fonts}}, {{fonts_attente}}, {{alertes_endpoint}} + extra."""
+    """Remplit un gabarit : {{asset:chemin}}, {{fonts}}, {{fonts_attente}}, {{alertes_endpoint}},
+    {{horloge}}, {{ecran_css}}, {{ecran_html}} + extra."""
     html = open(os.path.join(SRC, template), encoding="utf-8").read()
     values = {
+        "{{horloge}}": lire_src("horloge.js"),
+        "{{ecran_css}}": lire_src("ecran-chargement.css"),
+        "{{ecran_html}}": lire_src("ecran-chargement.html"),
         "{{fonts}}": FONTS.replace("&", "&amp;"),
         "{{fonts_attente}}": FONTS_ATTENTE.replace("&", "&amp;"),
         "{{alertes_endpoint}}": ALERTES_ENDPOINT,
@@ -346,6 +369,24 @@ def reglage_js(r):
     return "var DROP_REGLAGE=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
 
 
+def accueil_json(r, mode):
+    """Ce dont l'accueil a besoin avant même de charger la boutique : mode, heures (en ms), textes de date et
+    adresses des fichiers de la boutique (avec leur empreinte). Écrit dans la page, protégé pour un <script>."""
+    data = {
+        "nom": r["nom"],
+        "mode": mode,
+        "ouverture": int(r["ouverture"].timestamp() * 1000),
+        "fermeture": int(r["fermeture"].timestamp() * 1000),
+        "ouvertureTexte": quand_fr(r["ouverture"]),
+        "ressources": {
+            "css": asset("boutique.css"),
+            "scripts": [asset(chemin) for chemin in BOUTIQUE_SCRIPTS],
+            "fontes": FONTS,
+        },
+    }
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/").replace("<!--", "<\\!--")
+
+
 def write(path, content):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -362,8 +403,8 @@ def main():
         chemin_reglage = os.path.abspath(args[i + 1])
         del args[i:i + 2]
     mode = args[0] if args else MODE
-    if mode not in ("attente", "boutique"):
-        sys.exit('Mode inconnu : %s (attendu : "attente" ou "boutique")' % mode)
+    if mode not in MODES:
+        sys.exit('Mode inconnu : %s (attendu : "automatique", "attente" ou "boutique")' % mode)
 
     reglage = lire_reglage(chemin_reglage)  # d'abord : une erreur arrête tout avant d'écrire le moindre fichier
     resume_reglage(reglage, chemin_reglage)
@@ -371,25 +412,23 @@ def main():
     ensure_tools()
     app = asset_vars() + "\n" + reglage_js(reglage) + "\n" + jsc("compile.js", BABEL, JSX)
     write(os.path.join(ROOT, "app.js"), app)  # avant render() : son empreinte entre dans le HTML
+    write(BOUTIQUE_CSS, lire_src(CSS_BASE) + "\n" + tailwind_css())
 
-    boutique = render("template.html", {"/*__TAILWIND__*/": tailwind_css()})
     write(os.path.join(ROOT, "legal", "index.html"), render("legal.html", {"<!--__LEGAL__-->": legal_sections()}))
-
-    if mode == "attente":
-        write(os.path.join(ROOT, "index.html"), render("attente.html", {
-            "{{drop_nom}}": htmllib.escape(reglage["nom"]),
-            "{{drop_ouverture}}": htmllib.escape(quand_fr(reglage["ouverture"])),
-        }))
-        noindex = '<meta name="robots" content="noindex, nofollow"/>\n  <title>'
-        write(os.path.join(APERCU, "index.html"), boutique.replace("<title>", noindex, 1))
-        print("Mode ATTENTE → accueil : page d'attente · site complet : /apercu/")
-        if not ALERTES_ENDPOINT:
-            print("⚠️  ALERTES_ENDPOINT est vide : les inscriptions ne sont envoyées nulle part.")
-    else:
-        write(os.path.join(ROOT, "index.html"), boutique)
-        if os.path.isdir(APERCU):
-            shutil.rmtree(APERCU)
-        print("Mode BOUTIQUE → accueil : site complet")
+    write(os.path.join(ROOT, "index.html"), render("accueil.html", {
+        "{{drop_nom}}": htmllib.escape(reglage["nom"]),
+        "{{drop_ouverture}}": htmllib.escape(quand_fr(reglage["ouverture"])),
+        "{{drop_json}}": accueil_json(reglage, mode),
+    }))
+    noindex = '<meta name="robots" content="noindex, nofollow"/>\n  <title>'
+    write(os.path.join(APERCU, "index.html"), render("template.html").replace("<title>", noindex, 1))
+    print("Mode %s → accueil : %s · site complet : /apercu/" % (mode.upper(), {
+        "automatique": "attente, boutique, attente selon l'heure du serveur",
+        "attente": "page d'attente seule (la boutique n'est jamais montrée)",
+        "boutique": "boutique toujours montrée",
+    }[mode]))
+    if not ALERTES_ENDPOINT:
+        print("⚠️  ALERTES_ENDPOINT est vide : les inscriptions ne sont envoyées nulle part.")
 
     print("app.js : %d Ko" % (len(app.encode("utf-8")) // 1024))
 

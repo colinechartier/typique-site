@@ -1,4 +1,4 @@
-# Vercel ne publie que le site : index.html, app.js, photos/, media/, vendor/, favicons
+# Vercel ne publie que le site : index.html, app.js, boutique.css, api/, apercu/, legal/, photos/, media/, vendor/, favicons
 design_handoff_typique_site
 tools
 sources
