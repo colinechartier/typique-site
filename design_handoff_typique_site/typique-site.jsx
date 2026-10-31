@@ -92,6 +92,93 @@ async function checkoutCartItems(cartItems) {
   }
 }
 
+// ============================================================
+// PRIX ET STOCK — lus dans Shopify, une seule requête pour toutes les pièces
+// ============================================================
+// Rien n'est recopié dans le site : le prix et la disponibilité de chaque taille viennent de Shopify (jeton public, lecture seule).
+// Ce jeton ne lit pas les quantités, seulement « disponible » ou « épuisé » : cela suffit pour griser une taille.
+const SHOPIFY_API_VERSION = '2026-07';
+const STOCK_QUERY = 'query($ids: [ID!]!) { nodes(ids: $ids) { ... on Product { id variants(first: 50) { nodes { title availableForSale price { amount currencyCode } } } } } }';
+
+// Le site affiche « XXL » et « Taille unique », Shopify nomme ces variantes « 2XL » et « Default Title ».
+const TAILLE_AFFICHEE = { '2XL': 'XXL', 'Default Title': 'Taille unique' };
+
+// 44 → « 44 », 44.5 → « 44,50 »
+function eurosFr(n) {
+  const cents = Math.round(n * 100);
+  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2).replace('.', ',');
+}
+
+// { identifiant Shopify de la pièce: [{ label, dispo, priceNum, prix }, ...] } dans l'ordre des tailles de Shopify.
+// Une pièce que Shopify ne renvoie pas (inconnue ou non publiée sur le canal Buy Button) est absente du résultat.
+async function lireStockShopify(ids) {
+  const ctrl = new AbortController();
+  const delai = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const rep = await fetch(`https://${SHOPIFY_DOMAIN}/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+      method: 'POST', cache: 'no-store', signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': SHOPIFY_TOKEN },
+      body: JSON.stringify({ query: STOCK_QUERY, variables: { ids: ids.map(n => `gid://shopify/Product/${n}`) } })
+    });
+    if (!rep.ok) throw new Error(`Shopify a répondu ${rep.status}`);
+    const json = await rep.json();
+    if (json.errors || !json.data || !Array.isArray(json.data.nodes)) throw new Error('réponse Shopify inattendue');
+    const pieces = {};
+    for (const n of json.data.nodes) {
+      if (!n || !n.variants.nodes.length) continue;
+      pieces[n.id.split('/').pop()] = n.variants.nodes.map(v => {
+        const montant = Number(v.price.amount);
+        // Jamais de prix inventé : un prix illisible ou dans une autre devise fait échouer toute la lecture.
+        if (!(montant > 0) || v.price.currencyCode !== 'EUR') throw new Error('prix Shopify illisible');
+        return { label: TAILLE_AFFICHEE[v.title] || v.title, dispo: v.availableForSale, priceNum: montant, prix: `${eurosFr(montant)} €` };
+      });
+    }
+    return pieces;
+  } finally {
+    clearTimeout(delai);
+  }
+}
+
+// Lecture partagée : deux demandes en même temps n'envoient qu'une requête. Deux essais, puis l'échec est rendu.
+let _stockEnCours = null;
+let _stockPrecedent = null; // dernière lecture réussie : { pieces, heure }
+function lireStock() {
+  if (!_stockEnCours) {
+    const ids = Object.values(SHOPIFY_IDS);
+    _stockEnCours = (async () => {
+      if (!ids.length) return {};
+      for (let essai = 1; ; essai++) {
+        try { return await lireStockShopify(ids); }
+        catch (e) {
+          if (essai === 2) throw e;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    })()
+      .then(pieces => { _stockPrecedent = { pieces, heure: Date.now() }; return pieces; })
+      .finally(() => { _stockEnCours = null; });
+  }
+  return _stockEnCours;
+}
+// Lancée dès le chargement du fichier (l'accueil le charge 90 s avant l'ouverture) : les prix sont là quand la boutique s'affiche.
+if (Object.keys(SHOPIFY_IDS).length) lireStock().catch(() => {});
+
+// La taille choisie par le client si elle est encore disponible, sinon la première qui l'est.
+function tailleChoisie(p, voulue) {
+  const t = p.sizes.find(s => s.label === voulue && s.dispo) || p.sizes.find(s => s.dispo);
+  return t ? t.label : null;
+}
+
+// Ce que fait le bouton d'achat d'une pièce : 'ouvert', 'bientot', 'chargement' ou 'indisponible'.
+function etatAchat(p, dropStatus, taille) {
+  if (dropStatus !== 'active' || p.stockEtat === 'aucun') return 'bientot';
+  if (p.stockEtat === 'chargement') return 'chargement';
+  return p.stockEtat === 'ok' && taille ? 'ouvert' : 'indisponible';
+}
+
+// La taille d'une ligne de panier telle que Shopify la décrit.
+const tailleShopify = (pieces, item) => (pieces[SHOPIFY_IDS[item.product.id]] || []).find(s => s.label === item.size);
+
 // ---------- Icônes inline (remplace lucide-react en mode standalone) ----------
 const Icon = ({ children, size = 24, strokeWidth = 1.5, className = '', style = {} }) =>
 <svg
@@ -741,7 +828,8 @@ function DefinitionSection() {
 // ============================================================
 // CART SIDEBAR
 // ============================================================
-function CartSidebar({ items, onClose, onRemove, onUpdateQty, total, cartCount, onCheckout }) {
+function CartSidebar({ items, onClose, onRemove, onUpdateQty, total, cartCount, onCheckout, verification }) {
+  const epuisees = items.filter(i => i.epuise).length;
   return (
     <>
       {/* Overlay */}
@@ -772,14 +860,14 @@ function CartSidebar({ items, onClose, onRemove, onUpdateQty, total, cartCount, 
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-typewriter text-sm mb-0.5">{item.product.name}</p>
-                <p className="font-serif-fine italic text-xs mb-2" style={{ opacity: 0.5 }}>Taille {item.size}</p>
+                <p className="font-serif-fine italic text-xs mb-2" style={{ opacity: 0.5 }}>Taille {item.size}{item.epuise ? ' · plus disponible' : ''}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button onClick={() => onUpdateQty(item.key, -1)} className="w-6 h-6 flex items-center justify-center font-typewriter text-xs" style={{ border: '1px solid rgba(15,40,101,0.2)', borderRadius: '2px', background: 'none', cursor: 'pointer', color: '#0F2865' }}>−</button>
                     <span className="font-typewriter text-sm w-4 text-center">{item.qty}</span>
                     <button onClick={() => onUpdateQty(item.key, 1)} className="w-6 h-6 flex items-center justify-center font-typewriter text-xs" style={{ border: '1px solid rgba(15,40,101,0.2)', borderRadius: '2px', background: 'none', cursor: 'pointer', color: '#0F2865' }}>+</button>
                   </div>
-                  <p className="font-serif text-sm">{item.product.priceNum * item.qty} €</p>
+                  <p className="font-serif text-sm">{eurosFr(item.priceNum * item.qty)} €</p>
                 </div>
               </div>
               <button onClick={() => onRemove(item.key)} className="font-typewriter text-[10px] self-start mt-1" style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.3, color: '#0F2865' }}>✕</button>
@@ -792,14 +880,20 @@ function CartSidebar({ items, onClose, onRemove, onUpdateQty, total, cartCount, 
           <div className="px-7 py-6" style={{ borderTop: '1px solid rgba(15,40,101,0.1)' }}>
             <div className="flex justify-between mb-6">
               <span className="font-typewriter text-sm tracking-wider uppercase" style={{ opacity: 0.6 }}>Total</span>
-              <span className="font-serif text-2xl">{total} €</span>
+              <span className="font-serif text-2xl">{eurosFr(total)} €</span>
             </div>
+            {epuisees > 0 && (
+              <p className="font-typewriter text-[11px] tracking-wider mb-5" style={{ borderLeft: '2px solid #E39A7C', paddingLeft: 12, lineHeight: 1.6 }}>
+                {epuisees > 1 ? 'Des pièces de ton panier ne sont plus disponibles.' : 'Une pièce de ton panier n\'est plus disponible.'} Retire-la pour continuer.
+              </p>
+            )}
             <div className="space-y-3">
               <button
                 onClick={onCheckout}
+                disabled={verification || epuisees > 0}
                 className="w-full py-4 font-typewriter text-sm tracking-widest uppercase"
-                style={{ backgroundColor: '#E39A7C', color: '#F4F1EC', border: 'none', borderRadius: '2px', cursor: 'pointer' }}>
-                Commander →
+                style={{ backgroundColor: '#E39A7C', color: '#F4F1EC', border: 'none', borderRadius: '2px', cursor: verification || epuisees > 0 ? 'default' : 'pointer', opacity: verification || epuisees > 0 ? 0.5 : 1 }}>
+                {verification ? 'Vérification…' : 'Commander →'}
               </button>
               <button
                 onClick={() => { onClose(); setTimeout(() => { const el = document.getElementById('boutique'); if(el) el.scrollIntoView({behavior:'smooth'}); }, 100); }}
@@ -996,24 +1090,71 @@ function LegalModal({ page, onClose }) {
 }
 
 // ============================================================
+// CHOIX DE LA TAILLE — partagé par la carte et la fiche détaillée
+// ============================================================
+// Les tailles viennent de Shopify. Une taille épuisée est grisée, barrée et ne peut pas être choisie.
+function ChoixTaille({ p, taille, onChoisir, compact }) {
+  const marge = compact ? 'mb-4' : 'mb-6';
+  if (p.stockEtat === 'chargement') {
+    return (
+      <div className={`flex flex-wrap gap-1.5 ${marge}`} aria-hidden="true">
+        {[0, 1, 2, 3, 4, 5].map(i => <span key={i} style={{ width: 34, height: compact ? 26 : 30, borderRadius: '2px', backgroundColor: 'rgba(15,40,101,0.07)' }} />)}
+      </div>
+    );
+  }
+  if (p.sizes.length > 1) {
+    return (
+      <div className={`flex flex-wrap ${compact ? 'gap-1.5' : 'gap-2'} ${marge}`}>
+        {p.sizes.map(s => (
+          <button key={s.label} onClick={(e) => { e.stopPropagation(); onChoisir(s.label); }}
+            disabled={!s.dispo}
+            aria-label={s.dispo ? s.label : `${s.label}, épuisée`}
+            title={s.dispo ? undefined : 'Épuisée'}
+            className={`font-typewriter tracking-wider transition-all duration-200 ${compact ? 'text-[11px] px-2.5 py-1' : 'text-xs px-3 py-1.5'}`}
+            style={{
+              borderRadius: '2px', border: '1px solid',
+              borderColor: taille === s.label ? '#0F2865' : 'rgba(15,40,101,0.2)',
+              backgroundColor: taille === s.label ? '#0F2865' : 'transparent',
+              color: taille === s.label ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
+              cursor: s.dispo ? 'pointer' : 'not-allowed',
+              opacity: s.dispo ? 1 : 0.35,
+              textDecoration: s.dispo ? 'none' : 'line-through'
+            }}>{s.label}</button>
+        ))}
+      </div>
+    );
+  }
+  if (p.sizes.length === 1) {
+    return <p className={`font-typewriter text-[11px] tracking-wider ${marge}`} style={{ opacity: 0.45 }}>{p.sizes[0].label}</p>;
+  }
+  return null;
+}
+
+// Le prix de la taille choisie, ou un emplacement vide pendant la lecture de Shopify.
+function PrixPiece({ p, taille, className, style }) {
+  if (p.stockEtat === 'chargement') {
+    return <span aria-hidden="true" style={{ display: 'inline-block', width: 52, height: 22, borderRadius: '2px', backgroundColor: 'rgba(15,40,101,0.07)' }} />;
+  }
+  const info = p.sizes.find(s => s.label === taille) || p.sizes[0];
+  return <span className={className} style={style}>{info ? info.prix : ''}</span>;
+}
+
+// ============================================================
 // PRODUCT CARD
 // ============================================================
 function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
-  const [selectedSize, setSelectedSize] = useState(p.sizes[0]);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const isOpen = dropStatus === 'active' && !!SHOPIFY_IDS[p.id];
+  const taille = tailleChoisie(p, selectedSize);
+  const etat = etatAchat(p, dropStatus, taille);
+  const isOpen = etat === 'ouvert';
   const hasPhotos = p.photos && p.photos.length > 0;
 
   const handleAdd = (e) => {
     e.stopPropagation();
     if (!isOpen) return;
-    onAddToCart(p, selectedSize || 'Taille unique');
-  };
-
-  const handleSizeClick = (e, s) => {
-    e.stopPropagation();
-    setSelectedSize(s);
+    onAddToCart(p, taille);
   };
 
   const handlePhotoNav = (e, fn) => {
@@ -1070,25 +1211,9 @@ function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
               <span className="font-typewriter text-[10px] tracking-wider" style={{ color: '#0F2865', opacity: 0.55 }}>{p.color.label}</span>
             </div>
           )}
-          {p.sizes.length > 1 ? (
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {p.sizes.map(s => (
-                <button key={s} onClick={(e) => handleSizeClick(e, s)}
-                  className="font-typewriter text-[11px] tracking-wider px-2.5 py-1 transition-all duration-200"
-                  style={{
-                    borderRadius: '2px', border: '1px solid',
-                    borderColor: selectedSize === s ? '#0F2865' : 'rgba(15,40,101,0.2)',
-                    backgroundColor: selectedSize === s ? '#0F2865' : 'transparent',
-                    color: selectedSize === s ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
-                    cursor: 'pointer'
-                  }}>{s}</button>
-              ))}
-            </div>
-          ) : p.sizes.length === 1 ? (
-            <p className="font-typewriter text-[11px] tracking-wider mb-4" style={{ opacity: 0.45 }}>Taille unique</p>
-          ) : null}
+          <ChoixTaille p={p} taille={taille} onChoisir={setSelectedSize} compact />
           <div className="flex items-center justify-between">
-            <span className="font-serif text-xl">{p.price}</span>
+            <PrixPiece p={p} taille={taille} className="font-serif text-xl" />
             <button onClick={handleAdd}
               className="font-typewriter text-xs tracking-wider uppercase px-4 py-2.5 transition-all duration-300"
               style={{
@@ -1098,7 +1223,7 @@ function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
                 border: 'none', cursor: isOpen && !buying ? 'pointer' : 'default',
                 opacity: buying ? 0.7 : 1
               }}>
-              {isOpen ? '+ Panier' : 'Bientôt'}
+              {{ ouvert: '+ Panier', chargement: '…', indisponible: 'Indisponible' }[etat] || 'Bientôt'}
             </button>
           </div>
         </div>
@@ -1111,11 +1236,13 @@ function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
 // PRODUCT MODAL — aperçu détaillé au clic
 // ============================================================
 function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
-  const [selectedSize, setSelectedSize] = useState(p.sizes[0]);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const isOpen = dropStatus === 'active' && !!SHOPIFY_IDS[p.id];
+  const taille = tailleChoisie(p, selectedSize);
+  const etat = etatAchat(p, dropStatus, taille);
+  const isOpen = etat === 'ouvert';
   const hasPhotos = p.photos && p.photos.length > 0;
 
   // Fermer avec Échap + bouton retour navigateur
@@ -1136,7 +1263,7 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
 
   const handleAdd = () => {
     if (!isOpen) return;
-    onAddToCart(p, selectedSize || 'Taille unique');
+    onAddToCart(p, taille);
     onClose();
   };
 
@@ -1228,27 +1355,11 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
             )}
 
             {/* Sélecteur de taille */}
-            {p.sizes.length > 1 ? (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {p.sizes.map(s => (
-                  <button key={s} onClick={() => setSelectedSize(s)}
-                    className="font-typewriter text-xs tracking-wider px-3 py-1.5 transition-all duration-200"
-                    style={{
-                      borderRadius: '2px', border: '1px solid',
-                      borderColor: selectedSize === s ? '#0F2865' : 'rgba(15,40,101,0.2)',
-                      backgroundColor: selectedSize === s ? '#0F2865' : 'transparent',
-                      color: selectedSize === s ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
-                      cursor: 'pointer'
-                    }}>{s}</button>
-                ))}
-              </div>
-            ) : p.sizes.length === 1 ? (
-              <p className="font-typewriter text-[11px] tracking-wider mb-6" style={{ opacity: 0.45 }}>Taille unique</p>
-            ) : null}
+            <ChoixTaille p={p} taille={taille} onChoisir={setSelectedSize} />
 
             {/* Prix + CTA */}
             <div className="flex items-center justify-between mt-auto">
-              <span className="font-serif" style={{ fontSize: '1.5rem' }}>{p.price}</span>
+              <PrixPiece p={p} taille={taille} className="font-serif" style={{ fontSize: '1.5rem' }} />
               <button onClick={handleAdd}
                 className="font-typewriter text-sm tracking-widest uppercase px-6 py-3 transition-all duration-300"
                 style={{
@@ -1258,7 +1369,7 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
                   border: 'none', cursor: isOpen && !buying ? 'pointer' : 'default',
                   opacity: buying ? 0.7 : 1
                 }}>
-                {isOpen ? 'Ajouter au panier →' : 'Bientôt disponible'}
+                {{ ouvert: 'Ajouter au panier →', chargement: 'Chargement…', indisponible: 'Indisponible' }[etat] || 'Bientôt disponible'}
               </button>
             </div>
           </div>
@@ -1522,7 +1633,10 @@ function TypiqueSite() {
   const [activeCategory, setActiveCategory] = useState('NOUVEAU');
   const [notifEmail, setNotifEmail] = useState('');
   const [notifSubmitted, setNotifSubmitted] = useState(false);
-  const [detailProduct, setDetailProduct] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+  const [verification, setVerification] = useState(false); // dernière vérification du stock au clic sur « Commander »
+  // Prix et tailles lus dans Shopify : 'chargement', 'ok' ou 'erreur'. Une lecture déjà faite par le chargement du fichier sert tout de suite.
+  const [stock, setStock] = useState(() => _stockPrecedent ? { etat: 'ok', pieces: _stockPrecedent.pieces } : { etat: 'chargement', pieces: {} });
   const [legalModal, setLegalModal] = useState(null); // 'cgv' | 'mentions' | 'confidentialite'
 
   useEffect(() => {
@@ -1544,6 +1658,22 @@ function TypiqueSite() {
   // L'horloge se recale sur le serveur après l'affichage : le statut du drop est alors recalculé.
   useEffect(() => (window.HORLOGE ? window.HORLOGE.surChangement(refreshDropStatus) : undefined), []);
 
+  // ---- PRIX ET STOCK (Shopify) ----
+  // Rend les pièces lues, ou null si Shopify ne répond pas. Une lecture ratée n'efface jamais une lecture réussie.
+  const actualiserStock = () => lireStock().then(
+    pieces => { setStock({ etat: 'ok', pieces }); return pieces; },
+    () => { setStock(s => s.etat === 'ok' ? s : { etat: 'erreur', pieces: {} }); return null; }
+  );
+  useEffect(() => {
+    actualiserStock();
+    // Au retour sur l'onglet après un moment, des tailles ont pu partir.
+    const auRetour = () => { if (!document.hidden && (!_stockPrecedent || Date.now() - _stockPrecedent.heure > 60000)) actualiserStock(); };
+    document.addEventListener('visibilitychange', auRetour);
+    return () => document.removeEventListener('visibilitychange', auRetour);
+  }, []);
+  // À l'ouverture du drop, le stock est relu.
+  useEffect(() => { if (dropStatus === 'active') actualiserStock(); }, [dropStatus]);
+
   // ---- CART ----
   const addToCart = (product, size) => {
     setCartItems(prev => {
@@ -1559,7 +1689,6 @@ function TypiqueSite() {
   const updateQty = (key, delta) => setCartItems(prev =>
     prev.map(i => i.key === key ? { ...i, qty: i.qty + delta } : i).filter(i => i.qty > 0)
   );
-  const cartTotal = cartItems.reduce((sum, i) => sum + i.product.priceNum * i.qty, 0);
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
 
   // ---- PRODUCTS ----
@@ -1568,23 +1697,22 @@ function TypiqueSite() {
   const catalogue = [
     // Ordre d'affichage : t-shirts manches courtes, manches longues, Plein cagnard, hoodies, accessoires.
     // Dans chaque groupe, le Drop 02 passe avant le Drop 01.
-    // Drop 02 : prix, tailles et textes pas encore fixés. Sans identifiant Shopify dans reglage-drop.ini, une pièce reste en « Bientôt disponible ».
+    // Ni prix ni tailles ici : ils viennent de Shopify. Sans identifiant Shopify dans reglage-drop.ini, une pièce reste en « Bientôt disponible ».
     {
       id: 'ts-estaque', cat: 'T-SHIRTS',
-      name: "L'Estaque", price: '', priceNum: 0, sizes: [],
+      name: "L'Estaque",
       color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
       photos: [ESTAQUE_AVANT, ESTAQUE_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'ts-pinede', cat: 'T-SHIRTS',
-      name: 'La Pinède', price: '', priceNum: 0, sizes: [],
+      name: 'La Pinède',
       color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
       photos: [PINEDE_AVANT, PINEDE_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'ts-ferret', ref: 'TS 01', cat: 'T-SHIRTS',
-      name: 'Le Ferret', price: '44 €', priceNum: 44,
-      sizes: ['XS','S','M','L','XL','XXL'],
+      name: 'Le Ferret',
       sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
       color: { hex: '#3A3D44', label: 'Gris' },
       desc: "Le t-shirt en hommage au Cap, aux étés qui ne finissent pas, aux maisons avec tant de souvenirs qu\'on ne veut plus quitter.",
@@ -1593,8 +1721,7 @@ function TypiqueSite() {
     },
     {
       id: 'ts-entredeux', ref: 'TS 02', cat: 'T-SHIRTS',
-      name: "L'Entre Deux", price: '44 €', priceNum: 44,
-      sizes: ['XS','S','M','L','XL','XXL'],
+      name: "L'Entre Deux",
       sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
       color: { hex: '#6B6F4A', label: 'Kaki' },
       desc: 'Neuf mots dans le dos. Garrigue, baïne, mistral, tchanquée. Tout ce qui fait typique, en une seule pièce.',
@@ -1603,8 +1730,7 @@ function TypiqueSite() {
     },
     {
       id: 'ts-sable', ref: 'TS 03', cat: 'T-SHIRTS',
-      name: 'Sable chaud', price: '38 €', priceNum: 38,
-      sizes: ['XS','S','M','L','XL','XXL'],
+      name: 'Sable chaud',
       sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
       color: { hex: '#D6C8B4', label: 'Crème' },
       desc: 'Le plus discret de la collection. Des vêtements simples et épurés, comme on aime.',
@@ -1613,38 +1739,37 @@ function TypiqueSite() {
     },
     {
       id: 'ts-soleilcouchant', cat: 'MANCHES LONGUES',
-      name: 'Soleil couchant', price: '', priceNum: 0, sizes: [],
+      name: 'Soleil couchant',
       color: { hex: '#5A2430', label: 'Bordeaux' }, desc: '',
       photos: [SOLEILCOUCHANT_AVANT, SOLEILCOUCHANT_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'ts-petitmatin', cat: 'MANCHES LONGUES',
-      name: 'Petit matin', price: '', priceNum: 0, sizes: [],
+      name: 'Petit matin',
       color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
       photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-pleincagnard', cat: 'SWEATS',
-      name: 'Plein cagnard', price: '', priceNum: 0, sizes: [],
+      name: 'Plein cagnard',
       color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
       photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-minot', cat: 'SWEATS',
-      name: 'Le Minot du Sud', price: '', priceNum: 0, sizes: [],
+      name: 'Le Minot du Sud',
       color: { hex: '#2F2F31', label: 'Anthracite' }, desc: '',
       photos: [MINOT_AVANT, MINOT_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-corpssale', cat: 'SWEATS',
-      name: 'Corps Salé Coeur Solaire', price: '', priceNum: 0, sizes: [],
+      name: 'Corps Salé Coeur Solaire',
       color: { hex: '#7E5A55', label: 'Brun rosé' }, desc: '',
       photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-mistral', ref: 'SW 01', cat: 'SWEATS',
-      name: 'Le Mistral', price: '75 €', priceNum: 75,
-      sizes: ['XS','S','M','L','XL','XXL'],
+      name: 'Le Mistral',
       sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
       color: { hex: '#1A1A1A', label: 'Noir' },
       desc: "Après que le mistral est tout emporté, il ne reste que la simplicité et l'authenticité.",
@@ -1653,8 +1778,7 @@ function TypiqueSite() {
     },
     {
       id: 'sw-tchanquee', ref: 'SW 02', cat: 'SWEATS',
-      name: 'La Tchanquée', price: '84 €', priceNum: 84,
-      sizes: ['XS','S','M','L','XL','XXL'],
+      name: 'La Tchanquée',
       sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
       color: { hex: '#EDE8DF', label: 'Crème' },
       desc: "Comme une cabane tchanquée au coucher du soleil. Trois fois Typique pour les jours qui comptent triple sur le bassin.",
@@ -1663,8 +1787,7 @@ function TypiqueSite() {
     },
     {
       id: 'sw-surfer', ref: 'SW 03', cat: 'SWEATS',
-      name: 'Le Surfer', price: '84 €', priceNum: 84,
-      sizes: ['XS','S','M','L','XL','XXL'],
+      name: 'Le Surfer',
       sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
       color: { hex: '#0F1E36', label: 'Bleu nuit' },
       desc: "Bleu marine pour les matins de session, quand l'eau est encore froide et que personne n'a vu la lumière.",
@@ -1673,8 +1796,7 @@ function TypiqueSite() {
     },
     {
       id: 'acc-pilat', ref: 'ACC 01', cat: 'ACCESSOIRES',
-      name: 'Le Pilat', price: '37 €', priceNum: 37,
-      sizes: ['Taille unique'],
+      name: 'Le Pilat',
       color: { hex: '#2C2C2C', label: 'Noir washed', washed: true },
       desc: "Bob noir washed comme une dune au soleil rasant. Broderie typique, et basta.",
       photos: [BOB_PHOTO, PILAT_P1],
@@ -1682,8 +1804,7 @@ function TypiqueSite() {
     },
     {
       id: 'acc-garrigue', ref: 'ACC 02', cat: 'ACCESSOIRES',
-      name: 'La Garrigue', price: '37 €', priceNum: 37,
-      sizes: ['Taille unique'],
+      name: 'La Garrigue',
       color: { hex: '#6B6F4A', label: 'Kaki' },
       desc: "Velours côtelé kaki comme un buisson de thym brûlé par le mois d'août.",
       photos: [CASQUETTE_PHOTO, GARRIGUE_P1, GARRIGUE_P2, GARRIGUE_P3],
@@ -1694,7 +1815,40 @@ function TypiqueSite() {
   // Pièces en vente : celles de reglage-drop.ini, dans l'ordre du catalogue ci-dessus.
   const nouvelles = new Set(DROP_REGLAGE.nouvelleCollection);
   const enVente = new Set([...DROP_REGLAGE.nouvelleCollection, ...DROP_REGLAGE.anciennesPieces]);
-  const products = catalogue.filter(p => enVente.has(p.id)).map(p => ({ ...p, nouveau: nouvelles.has(p.id) }));
+  // Chaque pièce reçoit ses tailles et leur prix depuis Shopify (stockEtat : 'aucun', 'chargement', 'erreur' ou 'ok').
+  //  - sans identifiant Shopify, ou (nouvelle collection seulement) inconnue de Shopify : « Bientôt », sans prix ;
+  //  - ancienne pièce inconnue de Shopify, ou pièce dont toutes les tailles sont épuisées : retirée de la boutique ;
+  //  - pendant la lecture, ou si Shopify ne répond pas : aucun prix, aucun bouton d'achat.
+  const products = catalogue.filter(p => enVente.has(p.id)).flatMap(p => {
+    const nouveau = nouvelles.has(p.id);
+    const base = { ...p, nouveau, sizes: [] };
+    const num = SHOPIFY_IDS[p.id];
+    if (!num) return [{ ...base, stockEtat: 'aucun' }];
+    if (stock.etat !== 'ok') return [{ ...base, stockEtat: stock.etat }];
+    const tailles = stock.pieces[num];
+    if (!tailles) return nouveau ? [{ ...base, stockEtat: 'aucun' }] : [];
+    if (!tailles.some(t => t.dispo)) return [];
+    return [{ ...base, stockEtat: 'ok', sizes: tailles }];
+  });
+
+  // Panier : prix de Shopify au moment de l'affichage, et pièces devenues indisponibles repérées.
+  const lignes = cartItems.map(item => {
+    const t = tailleShopify(stock.pieces, item);
+    return { ...item, priceNum: (t || item.product.sizes.find(s => s.label === item.size)).priceNum, epuise: stock.etat === 'ok' && !(t && t.dispo) };
+  });
+  const cartTotal = lignes.reduce((sum, i) => sum + i.priceNum * i.qty, 0);
+  const detailProduct = products.find(p => p.id === detailId) || null;
+
+  // Dernière vérification avant le paiement : une taille a pu partir pendant que le client choisissait.
+  // Si Shopify ne répond pas, on laisse passer : sa page de paiement refuse elle-même une taille épuisée.
+  const commander = async () => {
+    setVerification(true);
+    const pieces = await actualiserStock();
+    setVerification(false);
+    if (pieces && cartItems.some(item => { const t = tailleShopify(pieces, item); return !(t && t.dispo); })) return;
+    setCartOpen(false);
+    checkoutCartItems(cartItems);
+  };
 
   const piecesDe = (cat) => cat === 'NOUVEAU' ? products.filter(p => p.nouveau) : products.filter(p => p.cat === cat);
   // Un onglet sans aucune pièce n'est pas affiché.
@@ -1711,13 +1865,14 @@ function TypiqueSite() {
       {/* CART SIDEBAR */}
       {cartOpen && (
         <CartSidebar
-          items={cartItems}
+          items={lignes}
           onClose={() => setCartOpen(false)}
           onRemove={removeFromCart}
           onUpdateQty={updateQty}
           total={cartTotal}
           cartCount={cartCount}
-          onCheckout={() => { setCartOpen(false); checkoutCartItems(cartItems); }}
+          onCheckout={commander}
+          verification={verification}
         />
       )}
 
@@ -1725,7 +1880,7 @@ function TypiqueSite() {
       {detailProduct && (
         <ProductModal
           product={detailProduct}
-          onClose={() => setDetailProduct(null)}
+          onClose={() => setDetailId(null)}
           onAddToCart={addToCart}
           dropStatus={dropStatus}
         />
@@ -1946,7 +2101,7 @@ function TypiqueSite() {
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
           <a
             href="#hero"
-            onClick={() => { setMenuOpen(false); setCartOpen(false); setDetailProduct(null); }}
+            onClick={() => { setMenuOpen(false); setCartOpen(false); setDetailId(null); }}
             className="font-typewriter text-xl md:text-2xl"
             style={{ color: scrolled || menuOpen ? '#0F2865' : '#F4F1EC' }}>
             typique
@@ -2146,6 +2301,23 @@ function TypiqueSite() {
             </div>
           </Reveal>
 
+          {/* SHOPIFY NE RÉPOND PAS : pas de prix, pas de bouton d'achat */}
+          {stock.etat === 'erreur' && (
+            <div role="status" className="mb-12 py-5 px-6 flex flex-col sm:flex-row items-center justify-between gap-4"
+              style={{ border: '1px solid rgba(227,154,124,0.55)', borderRadius: '2px', backgroundColor: 'rgba(227,154,124,0.08)' }}>
+              <div>
+                <p className="font-typewriter text-xs tracking-[0.3em] uppercase mb-1" style={{ color: '#E39A7C' }}>Prix et tailles non chargés</p>
+                <p className="font-serif text-sm" style={{ opacity: 0.7 }}>Vérifie ta connexion, puis réessaie. Aucun achat n'est possible tant que ça ne charge pas.</p>
+              </div>
+              <button
+                onClick={() => { setStock({ etat: 'chargement', pieces: {} }); actualiserStock(); }}
+                className="font-typewriter text-xs tracking-wider uppercase px-4 py-2.5"
+                style={{ borderRadius: '2px', backgroundColor: '#E39A7C', color: '#F4F1EC', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Réessayer
+              </button>
+            </div>
+          )}
+
           {/* CATEGORY TABS */}
           <Reveal>
             <div className="flex gap-1 mb-12 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
@@ -2176,7 +2348,7 @@ function TypiqueSite() {
                   product={p}
                   onAddToCart={addToCart}
                   dropStatus={dropStatus}
-                  onOpenDetail={setDetailProduct}
+                  onOpenDetail={(piece) => setDetailId(piece.id)}
                 />
               </Reveal>
             ))}

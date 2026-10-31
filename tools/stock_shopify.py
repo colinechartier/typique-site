@@ -1,5 +1,5 @@
 """Stock réel des pièces en vente, lu dans Shopify sans rien acheter : un panier jetable demande 999 exemplaires
-de chaque taille et Shopify ramène chaque ligne à la quantité disponible. Compare aussi le prix Shopify à celui du site.
+de chaque taille et Shopify ramène chaque ligne à la quantité disponible. Donne aussi le prix de Shopify, celui que le site affiche.
 Le jeton public du site sert à la lecture ; il n'est jamais affiché.   Usage : python3 tools/stock_shopify.py
 """
 import json, os, re, sys, urllib.request
@@ -14,8 +14,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import build
 reglage = build.lire_reglage(build.REGLAGE)
 ids = {ident: sid for ident, _, sid in reglage["nouvelles"] + reglage["anciennes"] if sid}
-site = {m[0]: (m[2], int(m[3])) for m in
-        re.findall(r"id: '([\w-]+)'[^\n]*\n\s*name: ([\"'])(.*?)\2, price: '[^']*', priceNum: (\d+)", src)}
+noms = dict(build.catalogue_jsx())
 
 
 def gql(query, variables=None):
@@ -42,14 +41,14 @@ for numid, p in zip(ids.values(), prods):
     if p is None:
         print(f"{num2site[numid]} : introuvable dans Shopify (pièce non publiée sur le canal Buy Button ?)")
         continue
-    nom, prix_site = site.get(num2site[numid], ("?", 0))
+    nom = noms.get(num2site[numid], "?")
     cases = []
     for v in p["variants"]["nodes"]:
         q = qty.get(v["id"], 0)
         etat = ("999 ou plus, ou stock non suivi" if q == 999 else str(q)) if v["availableForSale"] else "ÉPUISÉ"
         if v["currentlyNotInStock"]:
             etat += " (rupture, vente quand même)"
-        if float(v["price"]["amount"]) != prix_site:
-            etat += f" PRIX SHOPIFY {float(v['price']['amount']):g} € ≠ SITE {prix_site} €"
         cases.append(f"{'TU' if v['title'] == 'Default Title' else v['title']} {etat}")
-    print(f"{nom} ({prix_site} €) : " + " · ".join(cases))
+    prix = sorted({float(v["price"]["amount"]) for v in p["variants"]["nodes"]})
+    prix_txt = f"{prix[0]:g} à {prix[-1]:g} €" if len(prix) > 1 else f"{prix[0]:g} €"
+    print(f"{nom} ({prix_txt}) : " + " · ".join(cases))

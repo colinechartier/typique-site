@@ -152,6 +152,118 @@ async function checkoutCartItems(cartItems) {
   }
 }
 
+// ============================================================
+// PRIX ET STOCK — lus dans Shopify, une seule requête pour toutes les pièces
+// ============================================================
+// Rien n'est recopié dans le site : le prix et la disponibilité de chaque taille viennent de Shopify (jeton public, lecture seule).
+// Ce jeton ne lit pas les quantités, seulement « disponible » ou « épuisé » : cela suffit pour griser une taille.
+const SHOPIFY_API_VERSION = '2026-07';
+const STOCK_QUERY = 'query($ids: [ID!]!) { nodes(ids: $ids) { ... on Product { id variants(first: 50) { nodes { title availableForSale price { amount currencyCode } } } } } }';
+
+// Le site affiche « XXL » et « Taille unique », Shopify nomme ces variantes « 2XL » et « Default Title ».
+const TAILLE_AFFICHEE = {
+  '2XL': 'XXL',
+  'Default Title': 'Taille unique'
+};
+
+// 44 → « 44 », 44.5 → « 44,50 »
+function eurosFr(n) {
+  const cents = Math.round(n * 100);
+  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2).replace('.', ',');
+}
+
+// { identifiant Shopify de la pièce: [{ label, dispo, priceNum, prix }, ...] } dans l'ordre des tailles de Shopify.
+// Une pièce que Shopify ne renvoie pas (inconnue ou non publiée sur le canal Buy Button) est absente du résultat.
+async function lireStockShopify(ids) {
+  const ctrl = new AbortController();
+  const delai = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const rep = await fetch(`https://${SHOPIFY_DOMAIN}/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+      method: 'POST',
+      cache: 'no-store',
+      signal: ctrl.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Storefront-Access-Token': SHOPIFY_TOKEN
+      },
+      body: JSON.stringify({
+        query: STOCK_QUERY,
+        variables: {
+          ids: ids.map(n => `gid://shopify/Product/${n}`)
+        }
+      })
+    });
+    if (!rep.ok) throw new Error(`Shopify a répondu ${rep.status}`);
+    const json = await rep.json();
+    if (json.errors || !json.data || !Array.isArray(json.data.nodes)) throw new Error('réponse Shopify inattendue');
+    const pieces = {};
+    for (const n of json.data.nodes) {
+      if (!n || !n.variants.nodes.length) continue;
+      pieces[n.id.split('/').pop()] = n.variants.nodes.map(v => {
+        const montant = Number(v.price.amount);
+        // Jamais de prix inventé : un prix illisible ou dans une autre devise fait échouer toute la lecture.
+        if (!(montant > 0) || v.price.currencyCode !== 'EUR') throw new Error('prix Shopify illisible');
+        return {
+          label: TAILLE_AFFICHEE[v.title] || v.title,
+          dispo: v.availableForSale,
+          priceNum: montant,
+          prix: `${eurosFr(montant)} €`
+        };
+      });
+    }
+    return pieces;
+  } finally {
+    clearTimeout(delai);
+  }
+}
+
+// Lecture partagée : deux demandes en même temps n'envoient qu'une requête. Deux essais, puis l'échec est rendu.
+let _stockEnCours = null;
+let _stockPrecedent = null; // dernière lecture réussie : { pieces, heure }
+function lireStock() {
+  if (!_stockEnCours) {
+    const ids = Object.values(SHOPIFY_IDS);
+    _stockEnCours = (async () => {
+      if (!ids.length) return {};
+      for (let essai = 1;; essai++) {
+        try {
+          return await lireStockShopify(ids);
+        } catch (e) {
+          if (essai === 2) throw e;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    })().then(pieces => {
+      _stockPrecedent = {
+        pieces,
+        heure: Date.now()
+      };
+      return pieces;
+    }).finally(() => {
+      _stockEnCours = null;
+    });
+  }
+  return _stockEnCours;
+}
+// Lancée dès le chargement du fichier (l'accueil le charge 90 s avant l'ouverture) : les prix sont là quand la boutique s'affiche.
+if (Object.keys(SHOPIFY_IDS).length) lireStock().catch(() => {});
+
+// La taille choisie par le client si elle est encore disponible, sinon la première qui l'est.
+function tailleChoisie(p, voulue) {
+  const t = p.sizes.find(s => s.label === voulue && s.dispo) || p.sizes.find(s => s.dispo);
+  return t ? t.label : null;
+}
+
+// Ce que fait le bouton d'achat d'une pièce : 'ouvert', 'bientot', 'chargement' ou 'indisponible'.
+function etatAchat(p, dropStatus, taille) {
+  if (dropStatus !== 'active' || p.stockEtat === 'aucun') return 'bientot';
+  if (p.stockEtat === 'chargement') return 'chargement';
+  return p.stockEtat === 'ok' && taille ? 'ouvert' : 'indisponible';
+}
+
+// La taille d'une ligne de panier telle que Shopify la décrit.
+const tailleShopify = (pieces, item) => (pieces[SHOPIFY_IDS[item.product.id]] || []).find(s => s.label === item.size);
+
 // ---------- Icônes inline (remplace lucide-react en mode standalone) ----------
 const Icon = ({
   children,
@@ -1160,8 +1272,10 @@ function CartSidebar({
   onUpdateQty,
   total,
   cartCount,
-  onCheckout
+  onCheckout,
+  verification
 }) {
+  const epuisees = items.filter(i => i.epuise).length;
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-40",
     style: {
@@ -1245,7 +1359,7 @@ function CartSidebar({
     style: {
       opacity: 0.5
     }
-  }, "Taille ", item.size), /*#__PURE__*/React.createElement("div", {
+  }, "Taille ", item.size, item.epuise ? ' · plus disponible' : ''), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2"
@@ -1273,7 +1387,7 @@ function CartSidebar({
     }
   }, "+")), /*#__PURE__*/React.createElement("p", {
     className: "font-serif text-sm"
-  }, item.product.priceNum * item.qty, " \u20AC"))), /*#__PURE__*/React.createElement("button", {
+  }, eurosFr(item.priceNum * item.qty), " \u20AC"))), /*#__PURE__*/React.createElement("button", {
     onClick: () => onRemove(item.key),
     className: "font-typewriter text-[10px] self-start mt-1",
     style: {
@@ -1297,19 +1411,28 @@ function CartSidebar({
     }
   }, "Total"), /*#__PURE__*/React.createElement("span", {
     className: "font-serif text-2xl"
-  }, total, " \u20AC")), /*#__PURE__*/React.createElement("div", {
+  }, eurosFr(total), " \u20AC")), epuisees > 0 && /*#__PURE__*/React.createElement("p", {
+    className: "font-typewriter text-[11px] tracking-wider mb-5",
+    style: {
+      borderLeft: '2px solid #E39A7C',
+      paddingLeft: 12,
+      lineHeight: 1.6
+    }
+  }, epuisees > 1 ? 'Des pièces de ton panier ne sont plus disponibles.' : 'Une pièce de ton panier n\'est plus disponible.', " Retire-la pour continuer."), /*#__PURE__*/React.createElement("div", {
     className: "space-y-3"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onCheckout,
+    disabled: verification || epuisees > 0,
     className: "w-full py-4 font-typewriter text-sm tracking-widest uppercase",
     style: {
       backgroundColor: '#E39A7C',
       color: '#F4F1EC',
       border: 'none',
       borderRadius: '2px',
-      cursor: 'pointer'
+      cursor: verification || epuisees > 0 ? 'default' : 'pointer',
+      opacity: verification || epuisees > 0 ? 0.5 : 1
     }
-  }, "Commander \u2192"), /*#__PURE__*/React.createElement("button", {
+  }, verification ? 'Vérification…' : 'Commander →'), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       onClose();
       setTimeout(() => {
@@ -1563,6 +1686,93 @@ function LegalModal({
 }
 
 // ============================================================
+// CHOIX DE LA TAILLE — partagé par la carte et la fiche détaillée
+// ============================================================
+// Les tailles viennent de Shopify. Une taille épuisée est grisée, barrée et ne peut pas être choisie.
+function ChoixTaille({
+  p,
+  taille,
+  onChoisir,
+  compact
+}) {
+  const marge = compact ? 'mb-4' : 'mb-6';
+  if (p.stockEtat === 'chargement') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: `flex flex-wrap gap-1.5 ${marge}`,
+      "aria-hidden": "true"
+    }, [0, 1, 2, 3, 4, 5].map(i => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        width: 34,
+        height: compact ? 26 : 30,
+        borderRadius: '2px',
+        backgroundColor: 'rgba(15,40,101,0.07)'
+      }
+    })));
+  }
+  if (p.sizes.length > 1) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: `flex flex-wrap ${compact ? 'gap-1.5' : 'gap-2'} ${marge}`
+    }, p.sizes.map(s => /*#__PURE__*/React.createElement("button", {
+      key: s.label,
+      onClick: e => {
+        e.stopPropagation();
+        onChoisir(s.label);
+      },
+      disabled: !s.dispo,
+      "aria-label": s.dispo ? s.label : `${s.label}, épuisée`,
+      title: s.dispo ? undefined : 'Épuisée',
+      className: `font-typewriter tracking-wider transition-all duration-200 ${compact ? 'text-[11px] px-2.5 py-1' : 'text-xs px-3 py-1.5'}`,
+      style: {
+        borderRadius: '2px',
+        border: '1px solid',
+        borderColor: taille === s.label ? '#0F2865' : 'rgba(15,40,101,0.2)',
+        backgroundColor: taille === s.label ? '#0F2865' : 'transparent',
+        color: taille === s.label ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
+        cursor: s.dispo ? 'pointer' : 'not-allowed',
+        opacity: s.dispo ? 1 : 0.35,
+        textDecoration: s.dispo ? 'none' : 'line-through'
+      }
+    }, s.label)));
+  }
+  if (p.sizes.length === 1) {
+    return /*#__PURE__*/React.createElement("p", {
+      className: `font-typewriter text-[11px] tracking-wider ${marge}`,
+      style: {
+        opacity: 0.45
+      }
+    }, p.sizes[0].label);
+  }
+  return null;
+}
+
+// Le prix de la taille choisie, ou un emplacement vide pendant la lecture de Shopify.
+function PrixPiece({
+  p,
+  taille,
+  className,
+  style
+}) {
+  if (p.stockEtat === 'chargement') {
+    return /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": "true",
+      style: {
+        display: 'inline-block',
+        width: 52,
+        height: 22,
+        borderRadius: '2px',
+        backgroundColor: 'rgba(15,40,101,0.07)'
+      }
+    });
+  }
+  const info = p.sizes.find(s => s.label === taille) || p.sizes[0];
+  return /*#__PURE__*/React.createElement("span", {
+    className: className,
+    style: style
+  }, info ? info.prix : '');
+}
+
+// ============================================================
 // PRODUCT CARD
 // ============================================================
 function ProductCard({
@@ -1571,19 +1781,17 @@ function ProductCard({
   dropStatus,
   onOpenDetail
 }) {
-  const [selectedSize, setSelectedSize] = useState(p.sizes[0]);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const isOpen = dropStatus === 'active' && !!SHOPIFY_IDS[p.id];
+  const taille = tailleChoisie(p, selectedSize);
+  const etat = etatAchat(p, dropStatus, taille);
+  const isOpen = etat === 'ouvert';
   const hasPhotos = p.photos && p.photos.length > 0;
   const handleAdd = e => {
     e.stopPropagation();
     if (!isOpen) return;
-    onAddToCart(p, selectedSize || 'Taille unique');
-  };
-  const handleSizeClick = (e, s) => {
-    e.stopPropagation();
-    setSelectedSize(s);
+    onAddToCart(p, taille);
   };
   const handlePhotoNav = (e, fn) => {
     e.stopPropagation();
@@ -1722,30 +1930,18 @@ function ProductCard({
       color: '#0F2865',
       opacity: 0.55
     }
-  }, p.color.label)), p.sizes.length > 1 ? /*#__PURE__*/React.createElement("div", {
-    className: "flex flex-wrap gap-1.5 mb-4"
-  }, p.sizes.map(s => /*#__PURE__*/React.createElement("button", {
-    key: s,
-    onClick: e => handleSizeClick(e, s),
-    className: "font-typewriter text-[11px] tracking-wider px-2.5 py-1 transition-all duration-200",
-    style: {
-      borderRadius: '2px',
-      border: '1px solid',
-      borderColor: selectedSize === s ? '#0F2865' : 'rgba(15,40,101,0.2)',
-      backgroundColor: selectedSize === s ? '#0F2865' : 'transparent',
-      color: selectedSize === s ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
-      cursor: 'pointer'
-    }
-  }, s))) : p.sizes.length === 1 ? /*#__PURE__*/React.createElement("p", {
-    className: "font-typewriter text-[11px] tracking-wider mb-4",
-    style: {
-      opacity: 0.45
-    }
-  }, "Taille unique") : null, /*#__PURE__*/React.createElement("div", {
+  }, p.color.label)), /*#__PURE__*/React.createElement(ChoixTaille, {
+    p: p,
+    taille: taille,
+    onChoisir: setSelectedSize,
+    compact: true
+  }), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement(PrixPiece, {
+    p: p,
+    taille: taille,
     className: "font-serif text-xl"
-  }, p.price), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: handleAdd,
     className: "font-typewriter text-xs tracking-wider uppercase px-4 py-2.5 transition-all duration-300",
     style: {
@@ -1756,7 +1952,11 @@ function ProductCard({
       cursor: isOpen && !buying ? 'pointer' : 'default',
       opacity: buying ? 0.7 : 1
     }
-  }, isOpen ? '+ Panier' : 'Bientôt')))));
+  }, {
+    ouvert: '+ Panier',
+    chargement: '…',
+    indisponible: 'Indisponible'
+  }[etat] || 'Bientôt')))));
 }
 
 // ============================================================
@@ -1768,11 +1968,13 @@ function ProductModal({
   onAddToCart,
   dropStatus
 }) {
-  const [selectedSize, setSelectedSize] = useState(p.sizes[0]);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const isOpen = dropStatus === 'active' && !!SHOPIFY_IDS[p.id];
+  const taille = tailleChoisie(p, selectedSize);
+  const etat = etatAchat(p, dropStatus, taille);
+  const isOpen = etat === 'ouvert';
   const hasPhotos = p.photos && p.photos.length > 0;
 
   // Fermer avec Échap + bouton retour navigateur
@@ -1796,7 +1998,7 @@ function ProductModal({
   }, []);
   const handleAdd = () => {
     if (!isOpen) return;
-    onAddToCart(p, selectedSize || 'Taille unique');
+    onAddToCart(p, taille);
     onClose();
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -2019,33 +2221,20 @@ function ProductModal({
       color: '#0F2865',
       opacity: 0.55
     }
-  }, p.color.label)), p.sizes.length > 1 ? /*#__PURE__*/React.createElement("div", {
-    className: "flex flex-wrap gap-2 mb-6"
-  }, p.sizes.map(s => /*#__PURE__*/React.createElement("button", {
-    key: s,
-    onClick: () => setSelectedSize(s),
-    className: "font-typewriter text-xs tracking-wider px-3 py-1.5 transition-all duration-200",
-    style: {
-      borderRadius: '2px',
-      border: '1px solid',
-      borderColor: selectedSize === s ? '#0F2865' : 'rgba(15,40,101,0.2)',
-      backgroundColor: selectedSize === s ? '#0F2865' : 'transparent',
-      color: selectedSize === s ? '#F4F1EC' : 'rgba(15,40,101,0.6)',
-      cursor: 'pointer'
-    }
-  }, s))) : p.sizes.length === 1 ? /*#__PURE__*/React.createElement("p", {
-    className: "font-typewriter text-[11px] tracking-wider mb-6",
-    style: {
-      opacity: 0.45
-    }
-  }, "Taille unique") : null, /*#__PURE__*/React.createElement("div", {
+  }, p.color.label)), /*#__PURE__*/React.createElement(ChoixTaille, {
+    p: p,
+    taille: taille,
+    onChoisir: setSelectedSize
+  }), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mt-auto"
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement(PrixPiece, {
+    p: p,
+    taille: taille,
     className: "font-serif",
     style: {
       fontSize: '1.5rem'
     }
-  }, p.price), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: handleAdd,
     className: "font-typewriter text-sm tracking-widest uppercase px-6 py-3 transition-all duration-300",
     style: {
@@ -2056,7 +2245,11 @@ function ProductModal({
       cursor: isOpen && !buying ? 'pointer' : 'default',
       opacity: buying ? 0.7 : 1
     }
-  }, isOpen ? 'Ajouter au panier →' : 'Bientôt disponible'))))), /*#__PURE__*/React.createElement("style", null, `
+  }, {
+    ouvert: 'Ajouter au panier →',
+    chargement: 'Chargement…',
+    indisponible: 'Indisponible'
+  }[etat] || 'Bientôt disponible'))))), /*#__PURE__*/React.createElement("style", null, `
         @media (max-width: 640px) {
           .modal-inner { flex-direction: column !important; overflow-y: auto !important; }
           .modal-photo-col { flex: 0 0 auto !important; width: 100% !important; height: 52vh !important; min-height: unset !important; }
@@ -2391,7 +2584,16 @@ function TypiqueSite() {
   const [activeCategory, setActiveCategory] = useState('NOUVEAU');
   const [notifEmail, setNotifEmail] = useState('');
   const [notifSubmitted, setNotifSubmitted] = useState(false);
-  const [detailProduct, setDetailProduct] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+  const [verification, setVerification] = useState(false); // dernière vérification du stock au clic sur « Commander »
+  // Prix et tailles lus dans Shopify : 'chargement', 'ok' ou 'erreur'. Une lecture déjà faite par le chargement du fichier sert tout de suite.
+  const [stock, setStock] = useState(() => _stockPrecedent ? {
+    etat: 'ok',
+    pieces: _stockPrecedent.pieces
+  } : {
+    etat: 'chargement',
+    pieces: {}
+  });
   const [legalModal, setLegalModal] = useState(null); // 'cgv' | 'mentions' | 'confidentialite'
 
   useEffect(() => {
@@ -2419,6 +2621,35 @@ function TypiqueSite() {
   // L'horloge se recale sur le serveur après l'affichage : le statut du drop est alors recalculé.
   useEffect(() => window.HORLOGE ? window.HORLOGE.surChangement(refreshDropStatus) : undefined, []);
 
+  // ---- PRIX ET STOCK (Shopify) ----
+  // Rend les pièces lues, ou null si Shopify ne répond pas. Une lecture ratée n'efface jamais une lecture réussie.
+  const actualiserStock = () => lireStock().then(pieces => {
+    setStock({
+      etat: 'ok',
+      pieces
+    });
+    return pieces;
+  }, () => {
+    setStock(s => s.etat === 'ok' ? s : {
+      etat: 'erreur',
+      pieces: {}
+    });
+    return null;
+  });
+  useEffect(() => {
+    actualiserStock();
+    // Au retour sur l'onglet après un moment, des tailles ont pu partir.
+    const auRetour = () => {
+      if (!document.hidden && (!_stockPrecedent || Date.now() - _stockPrecedent.heure > 60000)) actualiserStock();
+    };
+    document.addEventListener('visibilitychange', auRetour);
+    return () => document.removeEventListener('visibilitychange', auRetour);
+  }, []);
+  // À l'ouverture du drop, le stock est relu.
+  useEffect(() => {
+    if (dropStatus === 'active') actualiserStock();
+  }, [dropStatus]);
+
   // ---- CART ----
   const addToCart = (product, size) => {
     setCartItems(prev => {
@@ -2443,7 +2674,6 @@ function TypiqueSite() {
     ...i,
     qty: i.qty + delta
   } : i).filter(i => i.qty > 0));
-  const cartTotal = cartItems.reduce((sum, i) => sum + i.product.priceNum * i.qty, 0);
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
 
   // ---- PRODUCTS ----
@@ -2452,14 +2682,11 @@ function TypiqueSite() {
   const catalogue = [
   // Ordre d'affichage : t-shirts manches courtes, manches longues, Plein cagnard, hoodies, accessoires.
   // Dans chaque groupe, le Drop 02 passe avant le Drop 01.
-  // Drop 02 : prix, tailles et textes pas encore fixés. Sans identifiant Shopify dans reglage-drop.ini, une pièce reste en « Bientôt disponible ».
+  // Ni prix ni tailles ici : ils viennent de Shopify. Sans identifiant Shopify dans reglage-drop.ini, une pièce reste en « Bientôt disponible ».
   {
     id: 'ts-estaque',
     cat: 'T-SHIRTS',
     name: "L'Estaque",
-    price: '',
-    priceNum: 0,
-    sizes: [],
     color: {
       hex: '#F7F6F3',
       label: 'Blanc'
@@ -2471,9 +2698,6 @@ function TypiqueSite() {
     id: 'ts-pinede',
     cat: 'T-SHIRTS',
     name: 'La Pinède',
-    price: '',
-    priceNum: 0,
-    sizes: [],
     color: {
       hex: '#EDE8DF',
       label: 'Crème'
@@ -2486,9 +2710,6 @@ function TypiqueSite() {
     ref: 'TS 01',
     cat: 'T-SHIRTS',
     name: 'Le Ferret',
-    price: '44 €',
-    priceNum: 44,
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
     color: {
       hex: '#3A3D44',
@@ -2507,9 +2728,6 @@ function TypiqueSite() {
     ref: 'TS 02',
     cat: 'T-SHIRTS',
     name: "L'Entre Deux",
-    price: '44 €',
-    priceNum: 44,
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
     color: {
       hex: '#6B6F4A',
@@ -2528,9 +2746,6 @@ function TypiqueSite() {
     ref: 'TS 03',
     cat: 'T-SHIRTS',
     name: 'Sable chaud',
-    price: '38 €',
-    priceNum: 38,
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
     color: {
       hex: '#D6C8B4',
@@ -2548,9 +2763,6 @@ function TypiqueSite() {
     id: 'ts-soleilcouchant',
     cat: 'MANCHES LONGUES',
     name: 'Soleil couchant',
-    price: '',
-    priceNum: 0,
-    sizes: [],
     color: {
       hex: '#5A2430',
       label: 'Bordeaux'
@@ -2562,9 +2774,6 @@ function TypiqueSite() {
     id: 'ts-petitmatin',
     cat: 'MANCHES LONGUES',
     name: 'Petit matin',
-    price: '',
-    priceNum: 0,
-    sizes: [],
     color: {
       hex: '#F7F6F3',
       label: 'Blanc'
@@ -2576,9 +2785,6 @@ function TypiqueSite() {
     id: 'sw-pleincagnard',
     cat: 'SWEATS',
     name: 'Plein cagnard',
-    price: '',
-    priceNum: 0,
-    sizes: [],
     color: {
       hex: '#EDE8DF',
       label: 'Crème'
@@ -2590,9 +2796,6 @@ function TypiqueSite() {
     id: 'sw-minot',
     cat: 'SWEATS',
     name: 'Le Minot du Sud',
-    price: '',
-    priceNum: 0,
-    sizes: [],
     color: {
       hex: '#2F2F31',
       label: 'Anthracite'
@@ -2604,9 +2807,6 @@ function TypiqueSite() {
     id: 'sw-corpssale',
     cat: 'SWEATS',
     name: 'Corps Salé Coeur Solaire',
-    price: '',
-    priceNum: 0,
-    sizes: [],
     color: {
       hex: '#7E5A55',
       label: 'Brun rosé'
@@ -2619,9 +2819,6 @@ function TypiqueSite() {
     ref: 'SW 01',
     cat: 'SWEATS',
     name: 'Le Mistral',
-    price: '75 €',
-    priceNum: 75,
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#1A1A1A',
@@ -2639,9 +2836,6 @@ function TypiqueSite() {
     ref: 'SW 02',
     cat: 'SWEATS',
     name: 'La Tchanquée',
-    price: '84 €',
-    priceNum: 84,
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#EDE8DF',
@@ -2659,9 +2853,6 @@ function TypiqueSite() {
     ref: 'SW 03',
     cat: 'SWEATS',
     name: 'Le Surfer',
-    price: '84 €',
-    priceNum: 84,
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     sizeNote: 'Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#0F1E36',
@@ -2679,9 +2870,6 @@ function TypiqueSite() {
     ref: 'ACC 01',
     cat: 'ACCESSOIRES',
     name: 'Le Pilat',
-    price: '37 €',
-    priceNum: 37,
-    sizes: ['Taille unique'],
     color: {
       hex: '#2C2C2C',
       label: 'Noir washed',
@@ -2700,9 +2888,6 @@ function TypiqueSite() {
     ref: 'ACC 02',
     cat: 'ACCESSOIRES',
     name: 'La Garrigue',
-    price: '37 €',
-    priceNum: 37,
-    sizes: ['Taille unique'],
     color: {
       hex: '#6B6F4A',
       label: 'Kaki'
@@ -2719,10 +2904,64 @@ function TypiqueSite() {
   // Pièces en vente : celles de reglage-drop.ini, dans l'ordre du catalogue ci-dessus.
   const nouvelles = new Set(DROP_REGLAGE.nouvelleCollection);
   const enVente = new Set([...DROP_REGLAGE.nouvelleCollection, ...DROP_REGLAGE.anciennesPieces]);
-  const products = catalogue.filter(p => enVente.has(p.id)).map(p => ({
-    ...p,
-    nouveau: nouvelles.has(p.id)
-  }));
+  // Chaque pièce reçoit ses tailles et leur prix depuis Shopify (stockEtat : 'aucun', 'chargement', 'erreur' ou 'ok').
+  //  - sans identifiant Shopify, ou (nouvelle collection seulement) inconnue de Shopify : « Bientôt », sans prix ;
+  //  - ancienne pièce inconnue de Shopify, ou pièce dont toutes les tailles sont épuisées : retirée de la boutique ;
+  //  - pendant la lecture, ou si Shopify ne répond pas : aucun prix, aucun bouton d'achat.
+  const products = catalogue.filter(p => enVente.has(p.id)).flatMap(p => {
+    const nouveau = nouvelles.has(p.id);
+    const base = {
+      ...p,
+      nouveau,
+      sizes: []
+    };
+    const num = SHOPIFY_IDS[p.id];
+    if (!num) return [{
+      ...base,
+      stockEtat: 'aucun'
+    }];
+    if (stock.etat !== 'ok') return [{
+      ...base,
+      stockEtat: stock.etat
+    }];
+    const tailles = stock.pieces[num];
+    if (!tailles) return nouveau ? [{
+      ...base,
+      stockEtat: 'aucun'
+    }] : [];
+    if (!tailles.some(t => t.dispo)) return [];
+    return [{
+      ...base,
+      stockEtat: 'ok',
+      sizes: tailles
+    }];
+  });
+
+  // Panier : prix de Shopify au moment de l'affichage, et pièces devenues indisponibles repérées.
+  const lignes = cartItems.map(item => {
+    const t = tailleShopify(stock.pieces, item);
+    return {
+      ...item,
+      priceNum: (t || item.product.sizes.find(s => s.label === item.size)).priceNum,
+      epuise: stock.etat === 'ok' && !(t && t.dispo)
+    };
+  });
+  const cartTotal = lignes.reduce((sum, i) => sum + i.priceNum * i.qty, 0);
+  const detailProduct = products.find(p => p.id === detailId) || null;
+
+  // Dernière vérification avant le paiement : une taille a pu partir pendant que le client choisissait.
+  // Si Shopify ne répond pas, on laisse passer : sa page de paiement refuse elle-même une taille épuisée.
+  const commander = async () => {
+    setVerification(true);
+    const pieces = await actualiserStock();
+    setVerification(false);
+    if (pieces && cartItems.some(item => {
+      const t = tailleShopify(pieces, item);
+      return !(t && t.dispo);
+    })) return;
+    setCartOpen(false);
+    checkoutCartItems(cartItems);
+  };
   const piecesDe = cat => cat === 'NOUVEAU' ? products.filter(p => p.nouveau) : products.filter(p => p.cat === cat);
   // Un onglet sans aucune pièce n'est pas affiché.
   const categories = ['NOUVEAU', 'T-SHIRTS', 'MANCHES LONGUES', 'SWEATS', 'ACCESSOIRES'].filter(cat => piecesDe(cat).length > 0);
@@ -2744,19 +2983,17 @@ function TypiqueSite() {
       color: '#0F2865'
     }
   }, cartOpen && /*#__PURE__*/React.createElement(CartSidebar, {
-    items: cartItems,
+    items: lignes,
     onClose: () => setCartOpen(false),
     onRemove: removeFromCart,
     onUpdateQty: updateQty,
     total: cartTotal,
     cartCount: cartCount,
-    onCheckout: () => {
-      setCartOpen(false);
-      checkoutCartItems(cartItems);
-    }
+    onCheckout: commander,
+    verification: verification
   }), detailProduct && /*#__PURE__*/React.createElement(ProductModal, {
     product: detailProduct,
-    onClose: () => setDetailProduct(null),
+    onClose: () => setDetailId(null),
     onAddToCart: addToCart,
     dropStatus: dropStatus
   }), legalModal && /*#__PURE__*/React.createElement(LegalModal, {
@@ -2971,7 +3208,7 @@ function TypiqueSite() {
     onClick: () => {
       setMenuOpen(false);
       setCartOpen(false);
-      setDetailProduct(null);
+      setDetailId(null);
     },
     className: "font-typewriter text-xl md:text-2xl",
     style: {
@@ -3186,7 +3423,42 @@ function TypiqueSite() {
     style: {
       opacity: 0.6
     }
-  }, "Prochain drop \xE0 venir."))), /*#__PURE__*/React.createElement(Reveal, null, /*#__PURE__*/React.createElement("div", {
+  }, "Prochain drop \xE0 venir."))), stock.etat === 'erreur' && /*#__PURE__*/React.createElement("div", {
+    role: "status",
+    className: "mb-12 py-5 px-6 flex flex-col sm:flex-row items-center justify-between gap-4",
+    style: {
+      border: '1px solid rgba(227,154,124,0.55)',
+      borderRadius: '2px',
+      backgroundColor: 'rgba(227,154,124,0.08)'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    className: "font-typewriter text-xs tracking-[0.3em] uppercase mb-1",
+    style: {
+      color: '#E39A7C'
+    }
+  }, "Prix et tailles non charg\xE9s"), /*#__PURE__*/React.createElement("p", {
+    className: "font-serif text-sm",
+    style: {
+      opacity: 0.7
+    }
+  }, "V\xE9rifie ta connexion, puis r\xE9essaie. Aucun achat n'est possible tant que \xE7a ne charge pas.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setStock({
+        etat: 'chargement',
+        pieces: {}
+      });
+      actualiserStock();
+    },
+    className: "font-typewriter text-xs tracking-wider uppercase px-4 py-2.5",
+    style: {
+      borderRadius: '2px',
+      backgroundColor: '#E39A7C',
+      color: '#F4F1EC',
+      border: 'none',
+      cursor: 'pointer',
+      whiteSpace: 'nowrap'
+    }
+  }, "R\xE9essayer")), /*#__PURE__*/React.createElement(Reveal, null, /*#__PURE__*/React.createElement("div", {
     className: "flex gap-1 mb-12 overflow-x-auto pb-1",
     style: {
       scrollbarWidth: 'none',
@@ -3214,7 +3486,7 @@ function TypiqueSite() {
     product: p,
     onAddToCart: addToCart,
     dropStatus: dropStatus,
-    onOpenDetail: setDetailProduct
+    onOpenDetail: piece => setDetailId(piece.id)
   })))))), /*#__PURE__*/React.createElement("section", {
     id: "histoire",
     className: "relative grain",
