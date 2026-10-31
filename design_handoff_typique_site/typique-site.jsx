@@ -6,16 +6,9 @@ const { useState, useEffect, useRef } = React;
 const SHOPIFY_DOMAIN = 'idkwvs-tc.myshopify.com';
 const SHOPIFY_TOKEN  = '76444f16fa7cea3e4d681c0f6e8a3189';
 
-const SHOPIFY_IDS = {
-  'ts-ferret':    '15770490175872',
-  'ts-entredeux': '15770490962304',
-  'ts-sable':     '15770491683200',
-  'sw-mistral':   '15770492764544',
-  'sw-tchanquee': '15770493616512',
-  'sw-surfer':    '15770494566784',
-  'acc-pilat':    '15778216706432',
-  'acc-garrigue': '15778220343680',
-};
+// Identifiants des pièces en vente : lus dans reglage-drop.ini par tools/build.py (variable DROP_REGLAGE, placée en tête de app.js).
+// Une pièce sans identifiant n'a jamais de bouton d'achat actif.
+const SHOPIFY_IDS = DROP_REGLAGE.shopifyIds;
 
 // Le SDK n'est chargé qu'à l'ajout au panier : il ne ralentit plus l'ouverture du site.
 // Copie figée de la version « latest » de Shopify (4.0.4, testée jusqu'à la page de paiement le 31/10/2026) :
@@ -990,7 +983,7 @@ function LegalModal({ page, onClose }) {
             ))}
           </div>
           <p className="font-serif-fine italic text-xs mt-10" style={{ opacity: 0.4 }}>
-            Dernière mise à jour : juin 2026
+            Dernière mise à jour : {DROP_REGLAGE.textesLegauxMisAJour}
           </p>
         </div>
       </div>
@@ -1005,7 +998,7 @@ function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
   const [selectedSize, setSelectedSize] = useState(p.sizes[0]);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const isOpen = (dropStatus === 'active_1' || dropStatus === 'active_2') && !!SHOPIFY_IDS[p.id];
+  const isOpen = dropStatus === 'active' && !!SHOPIFY_IDS[p.id];
   const hasPhotos = p.photos && p.photos.length > 0;
 
   const handleAdd = (e) => {
@@ -1118,7 +1111,7 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus }) {
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const isOpen = (dropStatus === 'active_1' || dropStatus === 'active_2') && !!SHOPIFY_IDS[p.id];
+  const isOpen = dropStatus === 'active' && !!SHOPIFY_IDS[p.id];
   const hasPhotos = p.photos && p.photos.length > 0;
 
   // Fermer avec Échap + bouton retour navigateur
@@ -1535,12 +1528,10 @@ function TypiqueSite() {
   }, []);
 
   // ---- DROP CONFIG ----
-  const DROP_1 = { start: new Date('2026-06-05T16:25:00'), end: new Date('2026-06-15T00:01:00'), label: 'Drop 1' };
-  const DROP_2 = { start: new Date('2026-07-15T14:00:00'), end: new Date('2026-07-25T20:00:00'), label: 'Drop 2' };
+  // Dates, pièces en vente et identifiants Shopify viennent de reglage-drop.ini (lu par tools/build.py, variable DROP_REGLAGE).
+  const DROP = { nom: DROP_REGLAGE.nom, start: new Date(DROP_REGLAGE.ouverture), end: new Date(DROP_REGLAGE.fermeture) };
   const now = new Date();
-  const dropStatus = now < DROP_1.start ? 'before_1' : now <= DROP_1.end ? 'active_1' : now < DROP_2.start ? 'between' : now <= DROP_2.end ? 'active_2' : 'closed';
-  const nextDrop = dropStatus === 'before_1' ? DROP_1 : dropStatus === 'between' ? DROP_2 : null;
-  const activeDrop = dropStatus === 'active_1' ? DROP_1 : dropStatus === 'active_2' ? DROP_2 : null;
+  const dropStatus = now < DROP.start ? 'before' : now <= DROP.end ? 'active' : 'closed';
 
   // ---- COUNTDOWN ----
   // Le décompte vit dans <CountdownDigits> ; à son terme il force un re-rendu pour basculer le statut du drop.
@@ -1566,18 +1557,20 @@ function TypiqueSite() {
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
 
   // ---- PRODUCTS ----
-  const products = [
+  // Toutes les pièces que le site connaît. Celles qui sont en vente, et celles de la « Nouvelle collection »,
+  // se règlent dans reglage-drop.ini : rien à changer ici pour ouvrir, fermer ou retirer une pièce.
+  const catalogue = [
     // Ordre d'affichage : t-shirts manches courtes, manches longues, Plein cagnard, hoodies, accessoires.
-    // Dans chaque groupe, le Drop 02 passe avant le Drop 01. « nouveau » = affiché dans l'onglet Nouvelle collection.
-    // Drop 02 : prix, tailles et textes pas encore fixés. Sans identifiant dans SHOPIFY_IDS, une pièce reste en « Bientôt disponible ».
+    // Dans chaque groupe, le Drop 02 passe avant le Drop 01.
+    // Drop 02 : prix, tailles et textes pas encore fixés. Sans identifiant Shopify dans reglage-drop.ini, une pièce reste en « Bientôt disponible ».
     {
-      id: 'ts-estaque', cat: 'T-SHIRTS', nouveau: true,
+      id: 'ts-estaque', cat: 'T-SHIRTS',
       name: "L'Estaque", price: '', priceNum: 0, sizes: [],
       color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
       photos: [ESTAQUE_AVANT, ESTAQUE_ARRIERE], bg: '#E8E3DB'
     },
     {
-      id: 'ts-pinede', cat: 'T-SHIRTS', nouveau: true,
+      id: 'ts-pinede', cat: 'T-SHIRTS',
       name: 'La Pinède', price: '', priceNum: 0, sizes: [],
       color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
       photos: [PINEDE_AVANT, PINEDE_ARRIERE], bg: '#E8E3DB'
@@ -1613,31 +1606,31 @@ function TypiqueSite() {
       mockup: <TshirtMockup bodyColor="#C4B49A" letterColor="#E39A7C" letterStroke="rgba(227,154,124,0.3)" />, bg: '#EDE7DC'
     },
     {
-      id: 'ts-soleilcouchant', cat: 'MANCHES LONGUES', nouveau: true,
+      id: 'ts-soleilcouchant', cat: 'MANCHES LONGUES',
       name: 'Soleil couchant', price: '', priceNum: 0, sizes: [],
       color: { hex: '#5A2430', label: 'Bordeaux' }, desc: '',
       photos: [SOLEILCOUCHANT_AVANT, SOLEILCOUCHANT_ARRIERE], bg: '#E8E3DB'
     },
     {
-      id: 'ts-petitmatin', cat: 'MANCHES LONGUES', nouveau: true,
+      id: 'ts-petitmatin', cat: 'MANCHES LONGUES',
       name: 'Petit matin', price: '', priceNum: 0, sizes: [],
       color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
       photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE], bg: '#E8E3DB'
     },
     {
-      id: 'sw-pleincagnard', cat: 'SWEATS', nouveau: true,
+      id: 'sw-pleincagnard', cat: 'SWEATS',
       name: 'Plein cagnard', price: '', priceNum: 0, sizes: [],
       color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
       photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE], bg: '#E8E3DB'
     },
     {
-      id: 'sw-minot', cat: 'SWEATS', nouveau: true,
+      id: 'sw-minot', cat: 'SWEATS',
       name: 'Le Minot du Sud', price: '', priceNum: 0, sizes: [],
       color: { hex: '#2F2F31', label: 'Anthracite' }, desc: '',
       photos: [MINOT_AVANT, MINOT_ARRIERE], bg: '#E8E3DB'
     },
     {
-      id: 'sw-corpssale', cat: 'SWEATS', nouveau: true,
+      id: 'sw-corpssale', cat: 'SWEATS',
       name: 'Corps Salé Coeur Solaire', price: '', priceNum: 0, sizes: [],
       color: { hex: '#7E5A55', label: 'Brun rosé' }, desc: '',
       photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE], bg: '#E8E3DB'
@@ -1692,10 +1685,18 @@ function TypiqueSite() {
     },
   ];
 
-  const categories = ['NOUVEAU', 'T-SHIRTS', 'MANCHES LONGUES', 'SWEATS', 'ACCESSOIRES'];
+  // Pièces en vente : celles de reglage-drop.ini, dans l'ordre du catalogue ci-dessus.
+  const nouvelles = new Set(DROP_REGLAGE.nouvelleCollection);
+  const enVente = new Set([...DROP_REGLAGE.nouvelleCollection, ...DROP_REGLAGE.anciennesPieces]);
+  const products = catalogue.filter(p => enVente.has(p.id)).map(p => ({ ...p, nouveau: nouvelles.has(p.id) }));
+
+  const piecesDe = (cat) => cat === 'NOUVEAU' ? products.filter(p => p.nouveau) : products.filter(p => p.cat === cat);
+  // Un onglet sans aucune pièce n'est pas affiché.
+  const categories = ['NOUVEAU', 'T-SHIRTS', 'MANCHES LONGUES', 'SWEATS', 'ACCESSOIRES'].filter(cat => piecesDe(cat).length > 0);
   const categoryLabels = { 'NOUVEAU': 'NOUVELLE COLLECTION', 'T-SHIRTS': 'T-SHIRTS', 'MANCHES LONGUES': 'MANCHES LONGUES', 'SWEATS': 'HOODIES', 'ACCESSOIRES': 'ACCESSOIRES' };
-  // Par défaut : la nouvelle collection seule. Les anciennes pièces apparaissent dans leur catégorie.
-  const filteredProducts = activeCategory === 'NOUVEAU' ? products.filter(p => p.nouveau) : products.filter(p => p.cat === activeCategory);
+  // Par défaut : la nouvelle collection seule (sinon le premier onglet). Les anciennes pièces apparaissent dans leur catégorie.
+  const categorieActive = categories.includes(activeCategory) ? activeCategory : categories[0];
+  const filteredProducts = piecesDe(categorieActive);
 
   const lexique = ['garrigue', 'baïne', 'mistral', 'tchanquée', 'restanque', 'cachotte', 'farigoule', 'la leyre'];
 
@@ -2108,11 +2109,11 @@ function TypiqueSite() {
           {/* DROP BANNER */}
           <Reveal>
             <div className="mb-12 py-5 px-6 flex flex-col sm:flex-row items-center justify-between gap-4"
-              style={{ border: '1px solid rgba(15,40,101,0.12)', borderRadius: '2px', backgroundColor: dropStatus.startsWith('active') ? 'rgba(227,154,124,0.08)' : 'rgba(15,40,101,0.04)' }}>
-              {dropStatus === 'before_1' && (
+              style={{ border: '1px solid rgba(15,40,101,0.12)', borderRadius: '2px', backgroundColor: dropStatus === 'active' ? 'rgba(227,154,124,0.08)' : 'rgba(15,40,101,0.04)' }}>
+              {dropStatus === 'before' && (
                 <>
                   <div>
-                    <p className="font-typewriter text-xs tracking-[0.3em] uppercase mb-1" style={{ color: '#E39A7C' }}>Drop 1 — 5 au 15 juin</p>
+                    <p className="font-typewriter text-xs tracking-[0.3em] uppercase mb-1" style={{ color: '#E39A7C' }}>{DROP.nom} · ouverture {DROP_REGLAGE.ouvertureTexte}</p>
                     <p className="font-serif text-sm mb-2" style={{ opacity: 0.7 }}>Les commandes ouvrent dans</p>
                     <a
                       href="#alertes"
@@ -2121,34 +2122,16 @@ function TypiqueSite() {
                       Recevoir l'alerte →
                     </a>
                   </div>
-                  <CountdownDigits target={DROP_1.start} color="#0F2865" onExpire={refreshDropStatus} />
+                  <CountdownDigits target={DROP.start} color="#0F2865" onExpire={refreshDropStatus} />
                 </>
               )}
-              {dropStatus === 'active_1' && (
+              {dropStatus === 'active' && (
                 <>
                   <div>
-                    <p className="font-typewriter text-xs tracking-[0.3em] uppercase mb-1" style={{ color: '#E39A7C' }}>● Drop 1 ouvert</p>
-                    <p className="font-serif text-sm" style={{ opacity: 0.7 }}>Fermeture des commandes le 15 juin à minuit</p>
+                    <p className="font-typewriter text-xs tracking-[0.3em] uppercase mb-1" style={{ color: '#E39A7C' }}>● {DROP.nom} ouvert</p>
+                    <p className="font-serif text-sm" style={{ opacity: 0.7 }}>Fermeture des commandes {DROP_REGLAGE.fermetureTexte}</p>
                   </div>
-                  <CountdownDigits target={DROP_1.end} color="#E39A7C" onExpire={refreshDropStatus} />
-                </>
-              )}
-              {dropStatus === 'between' && (
-                <>
-                  <div>
-                    <p className="font-typewriter text-xs tracking-[0.3em] uppercase mb-1" style={{ opacity: 0.5 }}>Drop 1 terminé</p>
-                    <p className="font-serif text-sm" style={{ opacity: 0.7 }}>Le prochain drop arrive fin juin</p>
-                  </div>
-                  <CountdownDigits target={DROP_2.start} color="#0F2865" onExpire={refreshDropStatus} />
-                </>
-              )}
-              {dropStatus === 'active_2' && (
-                <>
-                  <div>
-                    <p className="font-typewriter text-xs tracking-[0.3em] uppercase mb-1" style={{ color: '#E39A7C' }}>● Drop 2 ouvert</p>
-                    <p className="font-serif text-sm" style={{ opacity: 0.7 }}>Fermeture des commandes le 5 juillet à minuit</p>
-                  </div>
-                  <p className="font-typewriter text-xs tracking-[0.2em]" style={{ color: '#E39A7C' }}>COMMANDES OUVERTES</p>
+                  <CountdownDigits target={DROP.end} color="#E39A7C" onExpire={refreshDropStatus} />
                 </>
               )}
               {dropStatus === 'closed' && (
@@ -2168,9 +2151,9 @@ function TypiqueSite() {
                   style={{
                     borderRadius: '2px',
                     border: '1px solid',
-                    borderColor: activeCategory === cat ? '#0F2865' : 'rgba(15,40,101,0.18)',
-                    backgroundColor: activeCategory === cat ? '#0F2865' : 'transparent',
-                    color: activeCategory === cat ? '#F4F1EC' : 'rgba(15,40,101,0.55)',
+                    borderColor: categorieActive === cat ? '#0F2865' : 'rgba(15,40,101,0.18)',
+                    backgroundColor: categorieActive === cat ? '#0F2865' : 'transparent',
+                    color: categorieActive === cat ? '#F4F1EC' : 'rgba(15,40,101,0.55)',
                     cursor: 'pointer'
                   }}>
                   {categoryLabels[cat] || cat}

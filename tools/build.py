@@ -3,6 +3,7 @@
 
   python3 tools/build.py            # utilise MODE ci-dessous
   python3 tools/build.py boutique   # force un mode
+  python3 tools/build.py --reglage essai.ini   # lit un autre fichier de réglage (pour les essais)
 
 MODE :
   "attente"  → l'accueil (index.html) est la page d'attente du prochain drop ;
@@ -11,26 +12,35 @@ MODE :
 Rien n'est jamais supprimé du code : on bascule simplement d'un mode à l'autre.
 
 Étapes :
+0. Lit et vérifie reglage-drop.ini (dates du drop, pièces en vente, identifiants Shopify).
+   À la moindre erreur la construction s'arrête avant d'écrire quoi que ce soit.
 1. Télécharge les outils manquants dans .cache/ (Babel standalone, Tailwind CLI).
 2. Compile design_handoff_typique_site/typique-site.jsx avec jsc + Babel.
 3. Génère le CSS Tailwind (seules les classes utilisées).
 4. Écrit app.js : une variable globale par fichier de photos/ et media/
-   (ferret_avant.webp → FERRET_AVANT, hero-720.mp4 → HERO_720) + l'app compilée.
+   (ferret_avant.webp → FERRET_AVANT, hero-720.mp4 → HERO_720), le réglage du drop
+   (variable DROP_REGLAGE) + l'app compilée.
 5. Écrit les pages : site complet, page d'attente, mentions légales (/legal/).
 
 Chaque fichier référencé porte ?v=<empreinte> : le navigateur peut le garder en cache
 indéfiniment (voir vercel.json) et le recharge dès que son contenu change.
 """
+import configparser
+import difflib
 import hashlib
 import html as htmllib
 import json
 import os
 import platform
+import re
 import shutil
 import stat
 import subprocess
 import sys
+import unicodedata
 import urllib.request
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 # ---------- Réglages ----------
 MODE = "attente"  # "attente" ou "boutique"
@@ -70,6 +80,20 @@ FONTS_ATTENTE = (
     "&family=EB+Garamond:ital,wght@0,400;1,400"
     "&display=swap"
 )
+
+# Réglage du drop : dates, pièces en vente, identifiants Shopify (le seul fichier que Coline ouvre).
+REGLAGE = os.path.join(ROOT, "reglage-drop.ini")
+PARIS = ZoneInfo("Europe/Paris")
+JOURS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+        "septembre", "octobre", "novembre", "décembre"]
+# Parties du fichier et lignes permises (None : une ligne par pièce, la clé est le nom de la pièce).
+SECTIONS = {
+    "drop": ("nom", "ouverture", "fermeture"),
+    "nouvelle-collection": None,
+    "anciennes-pieces": None,
+    "site": ("textes-legaux-mis-a-jour",),
+}
 
 
 def ensure_tools():
@@ -156,6 +180,172 @@ def legal_sections():
     return "\n".join(parts)
 
 
+def sans_accent(texte):
+    """Pour comparer des noms de pièces sans tenir compte des accents, des majuscules ni de la forme de l'apostrophe."""
+    texte = texte.replace("’", "'").replace("œ", "oe").replace("Œ", "oe")
+    texte = unicodedata.normalize("NFKD", texte)
+    return " ".join("".join(c for c in texte if not unicodedata.combining(c)).lower().split())
+
+
+def catalogue_jsx():
+    """Les pièces que le site connaît, [(identifiant, nom)], lues dans le tableau `catalogue` du .jsx."""
+    src = open(JSX, encoding="utf-8").read()
+    bloc = re.search(r"const catalogue = \[(.*?)\n  \];", src, re.S)
+    pieces = []
+    if bloc:
+        for ident, double, simple in re.findall(r"""\bid: '([\w-]+)'.*?\bname: (?:"([^"]*)"|'([^']*)')""", bloc.group(1), re.S):
+            pieces.append((ident, double or simple))
+    if not pieces:
+        sys.exit("Erreur : le tableau `catalogue` des pièces est introuvable dans typique-site.jsx.")
+    return pieces
+
+
+def jour_fr(d, avec_mois=True):
+    """« vendredi 6 novembre » (le 1er du mois s'écrit « 1er »). Espace insécable entre le numéro et le mois :
+    la date ne se coupe pas en fin de ligne."""
+    numero = "1er" if d.day == 1 else str(d.day)
+    return "%s %s%s" % (JOURS[d.weekday()], numero, " " + MOIS[d.month - 1] if avec_mois else "")
+
+
+def quand_fr(dt):
+    """« le vendredi 6 novembre à 12 h ». Pour minuit juste, la nuit est dite en toutes lettres
+    pour éviter tout doute : « à minuit, dans la nuit du jeudi 26 au vendredi 27 novembre »."""
+    if dt.hour == 0 and dt.minute == 0:
+        veille = dt - timedelta(days=1)
+        return "à minuit, dans la nuit du %s au %s" % (jour_fr(veille, veille.month != dt.month), jour_fr(dt))
+    heure = "%d h" % dt.hour + (" %02d" % dt.minute if dt.minute else "")
+    return "le %s à %s" % (jour_fr(dt), heure)
+
+
+def lire_reglage(chemin):
+    """Lit et vérifie le fichier de réglage. À la moindre erreur : un message clair en français et l'arrêt,
+    avant d'écrire quoi que ce soit. Retourne les dates (heure de Paris) et les pièces en vente."""
+    fichier = os.path.basename(chemin)
+
+    def stop(message):
+        sys.exit("\nERREUR dans %s : %s\nLa construction est arrêtée : le site n'a pas été modifié.\n" % (fichier, message))
+
+    if not os.path.exists(chemin):
+        stop("fichier introuvable (%s)." % chemin)
+    ini = configparser.ConfigParser(delimiters=("=",), comment_prefixes=("#",), inline_comment_prefixes=("#",), interpolation=None)
+    ini.optionxform = str  # garde les majuscules des noms de pièces
+    try:
+        ini.read_string(open(chemin, encoding="utf-8-sig").read(), source=fichier)
+    except configparser.MissingSectionHeaderError as e:
+        stop("ligne %d : « %s » est avant la première partie. Une partie s'écrit entre crochets, par exemple [drop]." % (e.lineno, e.line.strip()))
+    except configparser.DuplicateSectionError as e:
+        stop("la partie [%s] est écrite deux fois (ligne %s)." % (e.section, e.lineno))
+    except configparser.DuplicateOptionError as e:
+        stop("ligne %s : « %s » est écrit deux fois dans [%s]." % (e.lineno, e.option, e.section))
+    except configparser.ParsingError as e:
+        # configparser rend la ligne entre guillemets, avec son « \n » final : on l'enlève
+        stop("; ".join("ligne %d : « %s » n'est pas de la forme « nom = valeur »" % (n, ligne.strip().strip("'\"").replace("\\n", "").strip())
+                       for n, ligne in e.errors) + ".")
+    except configparser.Error as e:
+        stop(str(e))
+
+    for section in ini.sections():
+        if section not in SECTIONS:
+            stop("partie inconnue [%s]. Parties attendues : %s." % (section, ", ".join("[%s]" % s for s in SECTIONS)))
+    for section, cles in SECTIONS.items():
+        if not ini.has_section(section):
+            stop("la partie [%s] est absente." % section)
+        if cles is None:
+            continue
+        for cle in ini[section]:
+            if cle not in cles:
+                proche = difflib.get_close_matches(cle, cles, n=1)
+                stop("[%s] : la ligne « %s » est inconnue.%s Lignes attendues : %s." % (
+                    section, cle, " Tu voulais dire « %s » ?" % proche[0] if proche else "", ", ".join(cles)))
+        for cle in cles:
+            if not ini[section].get(cle, "").strip():
+                stop("[%s] : la ligne « %s = ... » est absente ou vide." % (section, cle))
+
+    def heure(cle):
+        texte = ini["drop"][cle].strip()
+        try:
+            local = datetime.strptime(texte, "%Y-%m-%d %H:%M")
+        except ValueError:
+            stop("[drop] %s = %s : date ou heure impossible. Écris-la ainsi : 2026-11-06 12:00 "
+                 "(année-mois-jour heure:minute, minuit = 00:00)." % (cle, texte))
+        dt = local.replace(tzinfo=PARIS)
+        if dt.astimezone(timezone.utc).astimezone(PARIS).replace(tzinfo=None) != local:
+            stop("[drop] %s = %s : cette heure n'existe pas à Paris (passage à l'heure d'été)." % (cle, texte))
+        return dt
+
+    ouverture, fermeture = heure("ouverture"), heure("fermeture")
+    if fermeture.timestamp() <= ouverture.timestamp():
+        stop("[drop] la fermeture (%s) doit venir après l'ouverture (%s)." % (ini["drop"]["fermeture"], ini["drop"]["ouverture"]))
+
+    connues = catalogue_jsx()
+    par_nom = {sans_accent(nom): (ident, nom) for ident, nom in connues}
+
+    def pieces(section):
+        lues = []
+        for cle, valeur in ini[section].items():
+            trouvee = par_nom.get(sans_accent(cle))
+            if not trouvee:
+                proche = difflib.get_close_matches(sans_accent(cle), list(par_nom), n=1, cutoff=0.6)
+                aide = " Tu voulais dire « %s » ?" % par_nom[proche[0]][1] if proche else " Pièces connues : %s." % ", ".join(n for _, n in connues)
+                stop("[%s] : la pièce « %s » n'existe pas sur le site.%s" % (section, cle, aide))
+            ident, nom = trouvee
+            valeur = valeur.strip()
+            if valeur and not re.fullmatch(r"[0-9]+", valeur):
+                stop("[%s] : « %s = %s » : l'identifiant Shopify doit être un nombre (ou rester vide)." % (section, cle, valeur))
+            lues.append((ident, nom, valeur))
+        return lues
+
+    nouvelles, anciennes = pieces("nouvelle-collection"), pieces("anciennes-pieces")
+    listees = {}
+    for section, liste in (("nouvelle-collection", nouvelles), ("anciennes-pieces", anciennes)):
+        for ident, nom, _ in liste:
+            if ident in listees:
+                ou = "dans [%s]" % section if listees[ident] == section else "dans [%s] et dans [%s]" % (listees[ident], section)
+                stop("la pièce « %s » est écrite deux fois (%s)." % (nom, ou))
+            listees[ident] = section
+    if not listees:
+        stop("aucune pièce en vente : la boutique serait vide.")
+
+    return {
+        "nom": ini["drop"]["nom"].strip(),
+        "ouverture": ouverture,
+        "fermeture": fermeture,
+        "nouvelles": nouvelles,
+        "anciennes": anciennes,
+        "cachees": [nom for ident, nom in connues if ident not in listees],
+        "textes_legaux": ini["site"]["textes-legaux-mis-a-jour"].strip(),
+    }
+
+
+def resume_reglage(r, chemin):
+    print("Réglage lu (%s) : %s" % (os.path.basename(chemin), r["nom"]))
+    print("  Ouverture : %s" % quand_fr(r["ouverture"]))
+    print("  Fermeture : %s" % quand_fr(r["fermeture"]))
+    for titre, liste in (("Nouvelle collection", r["nouvelles"]), ("Anciennes pièces", r["anciennes"])):
+        sans_id = [nom for _, nom, sid in liste if not sid]
+        print("  %s : %d pièce(s), %d avec identifiant Shopify" % (titre, len(liste), len(liste) - len(sans_id)))
+        if sans_id:
+            print("    « Bientôt disponible », sans bouton d'achat : " + ", ".join(sans_id))
+    if r["cachees"]:
+        print("  Pièces du site absentes du fichier, donc cachées : " + ", ".join(r["cachees"]))
+
+
+def reglage_js(r):
+    """Ce dont le navigateur a besoin, en tête de app.js : variable DROP_REGLAGE (heures avec leur décalage de Paris)."""
+    data = {
+        "nom": r["nom"],
+        "ouverture": r["ouverture"].isoformat(),
+        "fermeture": r["fermeture"].isoformat(),
+        "ouvertureTexte": quand_fr(r["ouverture"]),
+        "fermetureTexte": quand_fr(r["fermeture"]),
+        "nouvelleCollection": [ident for ident, _, _ in r["nouvelles"]],
+        "anciennesPieces": [ident for ident, _, _ in r["anciennes"]],
+        "shopifyIds": {ident: sid for ident, _, sid in r["nouvelles"] + r["anciennes"] if sid},
+        "textesLegauxMisAJour": r["textes_legaux"],
+    }
+    return "var DROP_REGLAGE=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
+
+
 def write(path, content):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -163,19 +353,33 @@ def write(path, content):
 
 
 def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else MODE
+    args = sys.argv[1:]
+    chemin_reglage = REGLAGE
+    if "--reglage" in args:
+        i = args.index("--reglage")
+        if i + 1 >= len(args):
+            sys.exit("--reglage attend le chemin d'un fichier.")
+        chemin_reglage = os.path.abspath(args[i + 1])
+        del args[i:i + 2]
+    mode = args[0] if args else MODE
     if mode not in ("attente", "boutique"):
         sys.exit('Mode inconnu : %s (attendu : "attente" ou "boutique")' % mode)
 
+    reglage = lire_reglage(chemin_reglage)  # d'abord : une erreur arrête tout avant d'écrire le moindre fichier
+    resume_reglage(reglage, chemin_reglage)
+
     ensure_tools()
-    app = asset_vars() + "\n" + jsc("compile.js", BABEL, JSX)
+    app = asset_vars() + "\n" + reglage_js(reglage) + "\n" + jsc("compile.js", BABEL, JSX)
     write(os.path.join(ROOT, "app.js"), app)  # avant render() : son empreinte entre dans le HTML
 
     boutique = render("template.html", {"/*__TAILWIND__*/": tailwind_css()})
     write(os.path.join(ROOT, "legal", "index.html"), render("legal.html", {"<!--__LEGAL__-->": legal_sections()}))
 
     if mode == "attente":
-        write(os.path.join(ROOT, "index.html"), render("attente.html"))
+        write(os.path.join(ROOT, "index.html"), render("attente.html", {
+            "{{drop_nom}}": htmllib.escape(reglage["nom"]),
+            "{{drop_ouverture}}": htmllib.escape(quand_fr(reglage["ouverture"])),
+        }))
         noindex = '<meta name="robots" content="noindex, nofollow"/>\n  <title>'
         write(os.path.join(APERCU, "index.html"), boutique.replace("<title>", noindex, 1))
         print("Mode ATTENTE → accueil : page d'attente · site complet : /apercu/")

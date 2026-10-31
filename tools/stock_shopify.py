@@ -2,14 +2,18 @@
 de chaque taille et Shopify ramène chaque ligne à la quantité disponible. Compare aussi le prix Shopify à celui du site.
 Le jeton public du site sert à la lecture ; il n'est jamais affiché.   Usage : python3 tools/stock_shopify.py
 """
-import json, os, re, urllib.request
+import json, os, re, sys, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 API = "2026-01"
 src = open(os.path.join(ROOT, "design_handoff_typique_site", "typique-site.jsx"), encoding="utf-8").read()
 token = re.search(r"SHOPIFY_TOKEN\s*=\s*'([^']+)'", src).group(1)
 domain = re.search(r"SHOPIFY_DOMAIN\s*=\s*'([^']+)'", src).group(1)
-ids = dict(re.findall(r"'([\w-]+)':\s*'(\d+)'", re.search(r"SHOPIFY_IDS\s*=\s*\{(.*?)\};", src, re.S).group(1)))
+# Les identifiants Shopify viennent du fichier de réglage (reglage-drop.ini), lu et vérifié comme à la construction du site.
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import build
+reglage = build.lire_reglage(build.REGLAGE)
+ids = {ident: sid for ident, _, sid in reglage["nouvelles"] + reglage["anciennes"] if sid}
 site = {m[0]: (m[2], int(m[3])) for m in
         re.findall(r"id: '([\w-]+)'[^\n]*\n\s*name: ([\"'])(.*?)\2, price: '[^']*', priceNum: (\d+)", src)}
 

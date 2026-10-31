@@ -14,10 +14,12 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 from cdp import Chrome, WS
 
 PORT, CDP_PORT = 8091, 9334
-FIN_DROP_1 = "2026-06-15T00:01:00"  # à adapter quand les dates du drop sortiront du code (bloc 2)
 app = open(os.path.join(ROOT, "app.js"), encoding="utf-8").read()
-assert app.count(FIN_DROP_1) == 1, "date de fin du drop 1 introuvable dans app.js"
-APP_OUVERT = app.replace(FIN_DROP_1, "2099-12-31T23:59:00").encode()
+# Drop forcé ouvert : dans la copie servie (jamais dans le dépôt), l'ouverture passe dans le passé et la fermeture très loin.
+app_ouvert, n1 = re.subn(r'"ouverture":"[^"]+"', '"ouverture":"2000-01-01T00:00:00+01:00"', app)
+app_ouvert, n2 = re.subn(r'"fermeture":"[^"]+"', '"fermeture":"2099-12-31T23:59:00+01:00"', app_ouvert)
+assert n1 == 1 and n2 == 1, "dates du drop introuvables dans app.js (variable DROP_REGLAGE)"
+APP_OUVERT = app_ouvert.encode()
 
 
 class H(http.server.SimpleHTTPRequestHandler):

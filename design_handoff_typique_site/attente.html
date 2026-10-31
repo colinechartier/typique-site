@@ -53,10 +53,11 @@
   .wave { width: clamp(150px, 18vw, 240px); aspect-ratio: 744 / 113; background: var(--cream); margin: clamp(14px, 2vw, 22px) auto 0;
     -webkit-mask: url({{asset:photos/wave_divider.png}}) center / contain no-repeat; mask: url({{asset:photos/wave_divider.png}}) center / contain no-repeat;
     clip-path: inset(0 100% 0 0); animation: draw 1.4s ease 1.6s forwards; }
-  .lede, .sub { text-shadow: 0 1px 14px rgba(10, 31, 61, 0.75); }
+  .lede, .sub, .quand { text-shadow: 0 1px 14px rgba(10, 31, 61, 0.75); }
   .lede { font-family: 'Cormorant', serif; font-style: italic; font-weight: 400; font-size: clamp(24px, 3.2vw, 40px); margin-top: clamp(26px, 4vh, 44px); min-height: 1.3em; }
   .cursor { display: inline-block; width: 1px; height: 0.9em; background: var(--cream); margin-left: 3px; vertical-align: -0.1em; animation: blink 1s steps(1) infinite; }
   .sub { max-width: 30em; font-size: clamp(15px, 1.25vw, 18px); line-height: 1.6; opacity: 0; margin-top: 14px; color: rgba(244,241,236,0.85); }
+  .quand { font-size: clamp(12px, 1vw, 14px); line-height: 1.7; letter-spacing: 0.24em; text-transform: uppercase; color: var(--terra); opacity: 0; margin-top: 22px; }
   .on { animation: rise 1s ease forwards; }
 
   form { margin-top: clamp(24px, 4vh, 40px); display: flex; align-items: flex-end; gap: 18px; width: min(460px, 100%); opacity: 0; }
@@ -106,7 +107,7 @@
   </div>
   <div class="frame"></div>
 
-  <p class="corner tl tw"><span class="dot"></span>Drop 02 — en préparation</p>
+  <p class="corner tl tw"><span class="dot"></span>{{drop_nom}} — en préparation</p>
   <p class="corner tr tw"><a href="https://instagram.com/typique.fr">@typique.fr</a></p>
   <p class="corner bl tw">Mer Méditerranée &amp; Océan Atlantique</p>
   <p class="corner br">entre sel et soleil</p>
@@ -115,6 +116,7 @@
     <h1 class="logo">typique</h1>
     <div class="wave" aria-hidden="true"></div>
     <p class="lede"><span id="lede"></span><span class="cursor" id="cursor" aria-hidden="true"></span></p>
+    <p class="quand tw" id="quand">Ouverture {{drop_ouverture}}</p>
     <p class="sub" id="sub">Avec des pièces encore plus typiques.<br>Laisse ton adresse, on t'envoie un mail dès l'ouverture.</p>
     <form id="f" novalidate>
       <input type="email" name="EMAIL" required autocomplete="email" placeholder="ton@email.fr" aria-label="Ton adresse email">
@@ -135,7 +137,7 @@
   // Machine à écrire, puis apparition du texte et du formulaire
   const texte = 'Le prochain drop arrive très bientôt.';
   const lede = document.getElementById('lede');
-  const suite = () => ['sub', 'f', 'rgpd', 'insta'].forEach(id => document.getElementById(id).classList.add('on'));
+  const suite = () => ['quand', 'sub', 'f', 'rgpd', 'insta'].forEach(id => document.getElementById(id).classList.add('on'));
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { lede.textContent = texte; suite(); }
   else {
     let i = 0;
