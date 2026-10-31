@@ -60,7 +60,9 @@ const SHOPIFY_IDS = {
 };
 
 // Le SDK n'est chargé qu'à l'ajout au panier : il ne ralentit plus l'ouverture du site.
-const SHOPIFY_SDK_URL = 'https://sdks.shopifycdn.com/buy-button/latest/buy-button-storefront.min.js';
+// Copie figée de la version « latest » de Shopify (4.0.4, testée jusqu'à la page de paiement le 31/10/2026) :
+// une mise à jour chez Shopify ne change rien pendant un drop. Pour la changer : nouveau fichier, nouveau nom.
+const SHOPIFY_SDK_URL = '/vendor/buy-button-storefront-4.0.4.min.js';
 let _sdkPromise = null;
 function loadShopifySdk() {
   if (window.ShopifyBuy) return Promise.resolve();
