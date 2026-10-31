@@ -922,7 +922,7 @@ const LEGAL_CONTENT = {
       },
       {
         heading: 'Hébergement',
-        text: `Ce site est hébergé par Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA — vercel.com`
+        text: `Ce site est hébergé par Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA (vercel.com)`
       },
       {
         heading: 'Propriété intellectuelle',
@@ -939,7 +939,7 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: '1. Vendeur',
-        text: `Coline Chartier — Typique\n58 rue Denise Vernay, 13330 Pélissanne\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com`
+        text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com`
       },
       {
         heading: '2. Produits',
@@ -950,7 +950,7 @@ const LEGAL_CONTENT = {
         text: `Les prix sont indiqués en euros TTC. En tant que micro-entrepreneur sous le régime de franchise en base de TVA (article 293 B du CGI), la TVA n'est pas applicable. Typique se réserve le droit de modifier ses prix à tout moment, mais les produits seront facturés sur la base du tarif en vigueur au moment de la validation de la commande.`
       },
       {
-        heading: '4. Commandes — modèle drop',
+        heading: '4. Commandes : modèle drop',
         text: `Les ventes s'effectuent par périodes limitées appelées "drops". Le paiement est immédiat et effectué au moment de la commande via Shopify Payments. Les commandes passées lors d'un drop sont expédiées en lot après la fermeture de la période de vente. La livraison est assurée uniquement en France métropolitaine.`
       },
       {
@@ -980,15 +980,15 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: 'Responsable du traitement',
-        text: `Coline Chartier — Typique\n58 rue Denise Vernay, 13330 Pélissanne\nEmail : typique.fr@gmail.com`
+        text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nEmail : typique.fr@gmail.com`
       },
       {
         heading: 'Données collectées',
-        text: `Lors d'une commande : nom, prénom, adresse de livraison, adresse email, numéro de téléphone.\nVia le formulaire d'alertes drop : adresse email uniquement.\nAucune donnée bancaire n'est collectée ou conservée par Typique — le paiement est traité par Shopify Payments.`
+        text: `Lors d'une commande : nom, prénom, adresse de livraison, adresse email, numéro de téléphone.\nVia le formulaire d'alertes drop : adresse email uniquement.\nAucune donnée bancaire n'est collectée ou conservée par Typique. Le paiement est traité par Shopify Payments.`
       },
       {
         heading: 'Finalités du traitement',
-        text: `Les données collectées sont utilisées pour :\n— Traiter et expédier vos commandes\n— Vous envoyer votre confirmation de commande et suivi de livraison\n— Vous informer des prochains drops si vous y avez consenti\n— Respecter nos obligations légales et comptables`
+        text: `Les données collectées sont utilisées pour :\n• Traiter et expédier vos commandes\n• Vous envoyer votre confirmation de commande et suivi de livraison\n• Vous informer des prochains drops si vous y avez consenti\n• Respecter nos obligations légales et comptables`
       },
       {
         heading: 'Base légale',
@@ -1008,7 +1008,7 @@ const LEGAL_CONTENT = {
       },
       {
         heading: 'Sous-traitants',
-        text: `Shopify Inc. (paiement et gestion des commandes) — conforme RGPD.\nVercel Inc. (hébergement) — conforme RGPD.\nBrevo (Sendinblue SAS, France — envoi des emails d'alerte drop) — conforme RGPD.`
+        text: `Shopify Inc. (paiement et gestion des commandes), conforme RGPD.\nVercel Inc. (hébergement), conforme RGPD.\nBrevo (Sendinblue SAS, France : envoi des emails d'alerte drop), conforme RGPD.`
       }
     ]
   }
@@ -1631,8 +1631,6 @@ function TypiqueSite() {
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('NOUVEAU');
-  const [notifEmail, setNotifEmail] = useState('');
-  const [notifSubmitted, setNotifSubmitted] = useState(false);
   const [detailId, setDetailId] = useState(null);
   const [verification, setVerification] = useState(false); // dernière vérification du stock au clic sur « Commander »
   // Prix et tailles lus dans Shopify : 'chargement', 'ok' ou 'erreur'. Une lecture déjà faite par le chargement du fichier sert tout de suite.
@@ -2448,49 +2446,21 @@ function TypiqueSite() {
             <h2 className="font-serif-fine italic leading-tight mb-6" style={{ fontSize: 'clamp(2rem,4.5vw,3.4rem)', color: '#F4F1EC' }}>
               Ne rate pas<br />le prochain drop.
             </h2>
-            <p className="font-serif text-base md:text-lg leading-relaxed mb-10" style={{ opacity: 0.65 }}>
+            <p className="font-serif text-base md:text-lg leading-relaxed mb-10" style={{ opacity: 0.65, textWrap: 'balance' }}>
               Chaque drop dure quelques jours. Les pièces partent vite.{' '}
-              Laisse ton adresse, on t'écrit dès que les commandes ouvrent.
+              Suis-nous sur Instagram pour ne rien rater.
             </p>
             <div className="mb-10 flex justify-center">
               <WaveDivider color="#F4F1EC" width={120} strokeWidth={1} />
             </div>
-            {notifSubmitted ? (
-              <div className="py-8 px-10 text-center" style={{ border: '1px solid rgba(244,241,236,0.15)', borderRadius: '2px', backgroundColor: 'rgba(244,241,236,0.05)' }}>
-                <p className="font-typewriter text-sm tracking-wider uppercase mb-3" style={{ color: '#E39A7C' }}>✓ C'est noté</p>
-                <p className="font-serif-fine italic text-base" style={{ opacity: 0.7 }}>
-                  On t'envoie une alerte dès que le prochain drop ouvre.
-                </p>
-              </div>
-            ) : (
-              <form
-                onSubmit={(e) => { e.preventDefault(); if (notifEmail.trim()) setNotifSubmitted(true); }}
-                className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                <input
-                  type="email"
-                  value={notifEmail}
-                  onChange={(e) => setNotifEmail(e.target.value)}
-                  placeholder="ton@email.fr"
-                  required
-                  className="flex-1 font-serif text-base px-5 py-3.5"
-                  style={{
-                    border: '1px solid rgba(244,241,236,0.2)',
-                    borderRadius: '2px',
-                    backgroundColor: 'rgba(244,241,236,0.06)',
-                    color: '#F4F1EC',
-                    outline: 'none',
-                  }} />
-                <button
-                  type="submit"
-                  className="btn-terra px-6 py-3.5 font-typewriter text-xs tracking-widest uppercase whitespace-nowrap"
-                  style={{ borderRadius: '2px' }}>
-                  M'alerter →
-                </button>
-              </form>
-            )}
-            <p className="font-typewriter text-[10px] tracking-[0.25em] uppercase mt-6" style={{ opacity: 0.35 }}>
-              Aucun spam. Juste les drops.
-            </p>
+            <a
+              href="https://www.instagram.com/typique.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-terra inline-block px-6 py-3.5 font-typewriter text-xs tracking-widest uppercase whitespace-nowrap"
+              style={{ borderRadius: '2px' }}>
+              Suivre @typique.fr →
+            </a>
           </Reveal>
         </div>
       </section>
@@ -2567,7 +2537,7 @@ function TypiqueSite() {
             style={{ borderTop: '1px solid rgba(244,241,236,0.12)' }}>
             
             <p className="font-typewriter text-xs tracking-[0.25em]" style={{ opacity: 0.6 }}>
-              © typique 2026 — entre sel et soleil
+              © typique 2026 · entre sel et soleil
             </p>
             <p className="font-serif-fine italic text-xs" style={{ opacity: 0.5 }}>
               [tchipik], à la provençale.

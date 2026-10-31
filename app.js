@@ -1465,7 +1465,7 @@ const LEGAL_CONTENT = {
       text: `Raison sociale : Typique\nNom : Coline Chartier\nAdresse : 58 rue Denise Vernay, 13330 Pélissanne, France\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com\nSite : www.boutiquetypique.fr`
     }, {
       heading: 'Hébergement',
-      text: `Ce site est hébergé par Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA — vercel.com`
+      text: `Ce site est hébergé par Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA (vercel.com)`
     }, {
       heading: 'Propriété intellectuelle',
       text: `L'ensemble des contenus présents sur ce site (textes, photographies, visuels, logo) sont la propriété exclusive de Typique / Coline Chartier. Toute reproduction, même partielle, est interdite sans autorisation préalable écrite.`
@@ -1478,7 +1478,7 @@ const LEGAL_CONTENT = {
     title: 'Conditions Générales de Vente',
     sections: [{
       heading: '1. Vendeur',
-      text: `Coline Chartier — Typique\n58 rue Denise Vernay, 13330 Pélissanne\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com`
+      text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com`
     }, {
       heading: '2. Produits',
       text: `Les produits proposés à la vente sont des articles de prêt-à-porter (t-shirts, sweats, accessoires) fabriqués en quantités limitées. Les caractéristiques essentielles de chaque produit (description, taille, prix) sont présentées sur le site.`
@@ -1486,7 +1486,7 @@ const LEGAL_CONTENT = {
       heading: '3. Prix',
       text: `Les prix sont indiqués en euros TTC. En tant que micro-entrepreneur sous le régime de franchise en base de TVA (article 293 B du CGI), la TVA n'est pas applicable. Typique se réserve le droit de modifier ses prix à tout moment, mais les produits seront facturés sur la base du tarif en vigueur au moment de la validation de la commande.`
     }, {
-      heading: '4. Commandes — modèle drop',
+      heading: '4. Commandes : modèle drop',
       text: `Les ventes s'effectuent par périodes limitées appelées "drops". Le paiement est immédiat et effectué au moment de la commande via Shopify Payments. Les commandes passées lors d'un drop sont expédiées en lot après la fermeture de la période de vente. La livraison est assurée uniquement en France métropolitaine.`
     }, {
       heading: '5. Paiement',
@@ -1509,13 +1509,13 @@ const LEGAL_CONTENT = {
     title: 'Politique de confidentialité',
     sections: [{
       heading: 'Responsable du traitement',
-      text: `Coline Chartier — Typique\n58 rue Denise Vernay, 13330 Pélissanne\nEmail : typique.fr@gmail.com`
+      text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nEmail : typique.fr@gmail.com`
     }, {
       heading: 'Données collectées',
-      text: `Lors d'une commande : nom, prénom, adresse de livraison, adresse email, numéro de téléphone.\nVia le formulaire d'alertes drop : adresse email uniquement.\nAucune donnée bancaire n'est collectée ou conservée par Typique — le paiement est traité par Shopify Payments.`
+      text: `Lors d'une commande : nom, prénom, adresse de livraison, adresse email, numéro de téléphone.\nVia le formulaire d'alertes drop : adresse email uniquement.\nAucune donnée bancaire n'est collectée ou conservée par Typique. Le paiement est traité par Shopify Payments.`
     }, {
       heading: 'Finalités du traitement',
-      text: `Les données collectées sont utilisées pour :\n— Traiter et expédier vos commandes\n— Vous envoyer votre confirmation de commande et suivi de livraison\n— Vous informer des prochains drops si vous y avez consenti\n— Respecter nos obligations légales et comptables`
+      text: `Les données collectées sont utilisées pour :\n• Traiter et expédier vos commandes\n• Vous envoyer votre confirmation de commande et suivi de livraison\n• Vous informer des prochains drops si vous y avez consenti\n• Respecter nos obligations légales et comptables`
     }, {
       heading: 'Base légale',
       text: `Le traitement de vos données est fondé sur l'exécution du contrat de vente (commandes), votre consentement (alertes drops) et notre intérêt légitime (gestion administrative).`
@@ -1530,7 +1530,7 @@ const LEGAL_CONTENT = {
       text: `Ce site n'utilise pas de cookies de traçage ou publicitaires. Des cookies techniques strictement nécessaires au fonctionnement du site peuvent être déposés.`
     }, {
       heading: 'Sous-traitants',
-      text: `Shopify Inc. (paiement et gestion des commandes) — conforme RGPD.\nVercel Inc. (hébergement) — conforme RGPD.\nBrevo (Sendinblue SAS, France — envoi des emails d'alerte drop) — conforme RGPD.`
+      text: `Shopify Inc. (paiement et gestion des commandes), conforme RGPD.\nVercel Inc. (hébergement), conforme RGPD.\nBrevo (Sendinblue SAS, France : envoi des emails d'alerte drop), conforme RGPD.`
     }]
   }
 };
@@ -2582,8 +2582,6 @@ function TypiqueSite() {
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('NOUVEAU');
-  const [notifEmail, setNotifEmail] = useState('');
-  const [notifSubmitted, setNotifSubmitted] = useState(false);
   const [detailId, setDetailId] = useState(null);
   const [verification, setVerification] = useState(false); // dernière vérification du stock au clic sur « Commander »
   // Prix et tailles lus dans Shopify : 'chargement', 'ok' ou 'erreur'. Une lecture déjà faite par le chargement du fichier sert tout de suite.
@@ -3579,63 +3577,24 @@ function TypiqueSite() {
   }, "Ne rate pas", /*#__PURE__*/React.createElement("br", null), "le prochain drop."), /*#__PURE__*/React.createElement("p", {
     className: "font-serif text-base md:text-lg leading-relaxed mb-10",
     style: {
-      opacity: 0.65
+      opacity: 0.65,
+      textWrap: 'balance'
     }
-  }, "Chaque drop dure quelques jours. Les pi\xE8ces partent vite.", ' ', "Laisse ton adresse, on t'\xE9crit d\xE8s que les commandes ouvrent."), /*#__PURE__*/React.createElement("div", {
+  }, "Chaque drop dure quelques jours. Les pi\xE8ces partent vite.", ' ', "Suis-nous sur Instagram pour ne rien rater."), /*#__PURE__*/React.createElement("div", {
     className: "mb-10 flex justify-center"
   }, /*#__PURE__*/React.createElement(WaveDivider, {
     color: "#F4F1EC",
     width: 120,
     strokeWidth: 1
-  })), notifSubmitted ? /*#__PURE__*/React.createElement("div", {
-    className: "py-8 px-10 text-center",
-    style: {
-      border: '1px solid rgba(244,241,236,0.15)',
-      borderRadius: '2px',
-      backgroundColor: 'rgba(244,241,236,0.05)'
-    }
-  }, /*#__PURE__*/React.createElement("p", {
-    className: "font-typewriter text-sm tracking-wider uppercase mb-3",
-    style: {
-      color: '#E39A7C'
-    }
-  }, "\u2713 C'est not\xE9"), /*#__PURE__*/React.createElement("p", {
-    className: "font-serif-fine italic text-base",
-    style: {
-      opacity: 0.7
-    }
-  }, "On t'envoie une alerte d\xE8s que le prochain drop ouvre.")) : /*#__PURE__*/React.createElement("form", {
-    onSubmit: e => {
-      e.preventDefault();
-      if (notifEmail.trim()) setNotifSubmitted(true);
-    },
-    className: "flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "email",
-    value: notifEmail,
-    onChange: e => setNotifEmail(e.target.value),
-    placeholder: "ton@email.fr",
-    required: true,
-    className: "flex-1 font-serif text-base px-5 py-3.5",
-    style: {
-      border: '1px solid rgba(244,241,236,0.2)',
-      borderRadius: '2px',
-      backgroundColor: 'rgba(244,241,236,0.06)',
-      color: '#F4F1EC',
-      outline: 'none'
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    type: "submit",
-    className: "btn-terra px-6 py-3.5 font-typewriter text-xs tracking-widest uppercase whitespace-nowrap",
+  })), /*#__PURE__*/React.createElement("a", {
+    href: "https://www.instagram.com/typique.fr",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    className: "btn-terra inline-block px-6 py-3.5 font-typewriter text-xs tracking-widest uppercase whitespace-nowrap",
     style: {
       borderRadius: '2px'
     }
-  }, "M'alerter \u2192")), /*#__PURE__*/React.createElement("p", {
-    className: "font-typewriter text-[10px] tracking-[0.25em] uppercase mt-6",
-    style: {
-      opacity: 0.35
-    }
-  }, "Aucun spam. Juste les drops.")))), /*#__PURE__*/React.createElement("footer", {
+  }, "Suivre @typique.fr \u2192")))), /*#__PURE__*/React.createElement("footer", {
     className: "relative py-20 md:py-24 px-6 grain",
     style: {
       backgroundColor: '#0A1F3D',
@@ -3739,7 +3698,7 @@ function TypiqueSite() {
     style: {
       opacity: 0.6
     }
-  }, "\xA9 typique 2026 \u2014 entre sel et soleil"), /*#__PURE__*/React.createElement("p", {
+  }, "\xA9 typique 2026 \xB7 entre sel et soleil"), /*#__PURE__*/React.createElement("p", {
     className: "font-serif-fine italic text-xs",
     style: {
       opacity: 0.5
