@@ -15,7 +15,7 @@ fi
 mkdir -p "$DEST" || exit 1
 
 copies=0
-for f in BRIEF.md VISUELS.md PLAN.md DROP02-A-REMPLIR.md; do
+for f in BRIEF.md VISUELS.md PLAN.md DROP02-A-REMPLIR.md POLITIQUES-SHOPIFY.md; do
   if [ ! -f "$ROOT/$f" ]; then
     echo "Absent, non copié : $f"
   elif cp -p "$ROOT/$f" "$DEST/$f"; then

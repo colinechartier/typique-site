@@ -37,7 +37,7 @@ var WAVE_DIVIDER='/photos/wave_divider.png?v=73e425ea9e';
 var HERO_540='/media/hero-540.mp4?v=6a669a2ca7';
 var HERO_720='/media/hero-720.mp4?v=e86924ff66';
 var HERO_POSTER='/media/hero-poster.webp?v=a546545392';
-var DROP_REGLAGE={"nom":"Drop 02","ouverture":"2026-11-06T12:00:00+01:00","fermeture":"2026-11-27T00:00:00+01:00","ouvertureTexte":"le vendredi 6 novembre à 12 h","fermetureTexte":"à minuit, dans la nuit du jeudi 26 au vendredi 27 novembre","nouvelleCollection":["ts-estaque","ts-pinede","ts-soleilcouchant","ts-petitmatin","sw-pleincagnard","sw-minot","sw-corpssale"],"anciennesPieces":["ts-ferret","ts-entredeux","ts-sable","sw-mistral","sw-tchanquee","sw-surfer","acc-pilat","acc-garrigue"],"shopifyIds":{"ts-ferret":"15770490175872","ts-entredeux":"15770490962304","ts-sable":"15770491683200","sw-mistral":"15770492764544","sw-tchanquee":"15770493616512","sw-surfer":"15770494566784","acc-pilat":"15778216706432","acc-garrigue":"15778220343680"},"textesLegauxMisAJour":"juin 2026"};
+var DROP_REGLAGE={"nom":"Drop 02","ouverture":"2026-11-06T12:00:00+01:00","fermeture":"2026-11-27T00:00:00+01:00","ouvertureTexte":"le vendredi 6 novembre à 12 h","fermetureTexte":"à minuit, dans la nuit du jeudi 26 au vendredi 27 novembre","nouvelleCollection":["ts-estaque","ts-pinede","ts-soleilcouchant","ts-petitmatin","sw-pleincagnard","sw-minot","sw-corpssale"],"anciennesPieces":["ts-ferret","ts-entredeux","ts-sable","sw-mistral","sw-tchanquee","sw-surfer","acc-pilat","acc-garrigue"],"shopifyIds":{"ts-ferret":"15770490175872","ts-entredeux":"15770490962304","ts-sable":"15770491683200","sw-mistral":"15770492764544","sw-tchanquee":"15770493616512","sw-surfer":"15770494566784","acc-pilat":"15778216706432","acc-garrigue":"15778220343680"},"textesLegauxMisAJour":"novembre 2026"};
 const {
   useState,
   useEffect,
@@ -1455,6 +1455,14 @@ function CartSidebar({
 }
 
 // ============================================================
+// COORDONNÉES ET TARIF PARTAGÉS PAR LES TEXTES (CGV, aide, pied de page)
+// ============================================================
+// tools/extract_legal.js lit ces deux lignes `const` pour construire /legal/ : garder une ligne par constante.
+// FRAIS_COLISSIMO doit rester identique au tarif de Shopify (Paramètres > Marchés > France > Expédition).
+const FRAIS_COLISSIMO = '6,90 €';
+const EMAIL_CONTACT = 'typique.fr@gmail.com';
+
+// ============================================================
 // LEGAL MODAL — CGV / Mentions légales / Confidentialité
 // ============================================================
 const LEGAL_CONTENT = {
@@ -1462,7 +1470,7 @@ const LEGAL_CONTENT = {
     title: 'Mentions légales',
     sections: [{
       heading: 'Éditeur du site',
-      text: `Raison sociale : Typique\nNom : Coline Chartier\nAdresse : 58 rue Denise Vernay, 13330 Pélissanne, France\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com\nSite : www.boutiquetypique.fr`
+      text: `Raison sociale : Typique\nNom : Coline Chartier\nAdresse : 58 rue Denise Vernay, 13330 Pélissanne, France\nSIRET : 94116866800015\nEmail : ${EMAIL_CONTACT}\nSite : www.boutiquetypique.fr`
     }, {
       heading: 'Hébergement',
       text: `Ce site est hébergé par Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA (vercel.com)`
@@ -1478,68 +1486,146 @@ const LEGAL_CONTENT = {
     title: 'Conditions Générales de Vente',
     sections: [{
       heading: '1. Vendeur',
-      text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nSIRET : 94116866800015\nEmail : typique.fr@gmail.com`
+      text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nSIRET : 94116866800015\nEmail : ${EMAIL_CONTACT}`
     }, {
       heading: '2. Produits',
       text: `Les produits proposés à la vente sont des articles de prêt-à-porter (t-shirts, sweats, accessoires) fabriqués en quantités limitées. Les caractéristiques essentielles de chaque produit (description, taille, prix) sont présentées sur le site.`
     }, {
       heading: '3. Prix',
-      text: `Les prix sont indiqués en euros TTC. En tant que micro-entrepreneur sous le régime de franchise en base de TVA (article 293 B du CGI), la TVA n'est pas applicable. Typique se réserve le droit de modifier ses prix à tout moment, mais les produits seront facturés sur la base du tarif en vigueur au moment de la validation de la commande.`
+      text: `Les prix sont indiqués en euros TTC. En tant que micro-entrepreneur sous le régime de franchise en base de TVA (article 293 B du CGI), la TVA n'est pas applicable. Typique se réserve le droit de modifier ses prix à tout moment, mais les produits seront facturés sur la base du tarif en vigueur au moment de la validation de la commande. Les éventuels frais de livraison, indiqués à l'article 6, s'ajoutent au prix des produits et sont affichés avant la validation de la commande.`
     }, {
       heading: '4. Commandes : modèle drop',
-      text: `Les ventes s'effectuent par périodes limitées appelées "drops". Le paiement est immédiat et effectué au moment de la commande via Shopify Payments. Les commandes passées lors d'un drop sont expédiées en lot après la fermeture de la période de vente. La livraison est assurée uniquement en France métropolitaine.`
+      text: `Les ventes s'effectuent par périodes limitées appelées "drops". Le paiement est immédiat et effectué au moment de la commande, sur la page de paiement sécurisée de Shopify. Les commandes passées lors d'un drop sont expédiées en lot après la fermeture de la période de vente. La livraison à domicile est assurée uniquement en France métropolitaine.`
     }, {
       heading: '5. Paiement',
-      text: `Le paiement s'effectue en ligne par carte bancaire via Shopify Payments (solution sécurisée). La commande est validée à réception du paiement. Aucune donnée bancaire n'est conservée par Typique.`
+      text: `Le paiement s'effectue en ligne, sur la page de paiement sécurisée de Shopify, par les moyens proposés au moment de la commande : carte bancaire, Apple Pay, PayPal ou Klarna. La commande est validée à réception du paiement. Aucune donnée bancaire n'est conservée par Typique.`
     }, {
       heading: '6. Livraison',
-      text: `Les commandes sont expédiées en lot après la fermeture du drop. Un email de confirmation avec numéro de suivi vous sera envoyé à l'expédition. La livraison est assurée uniquement en France métropolitaine. Les délais indicatifs sont de 3 à 5 jours ouvrés après expédition.`
+      text: `Livraison à domicile : Colissimo, en France métropolitaine uniquement, au tarif de ${FRAIS_COLISSIMO} par commande. Les commandes sont expédiées en lot après la fermeture du drop. Un email de confirmation avec numéro de suivi vous sera envoyé à l'expédition. Les délais indicatifs sont de 3 à 5 jours ouvrés après expédition.\nRetrait : gratuit, à l'adresse indiquée au moment du paiement (Pélissanne). Votre commande est généralement prête en 5 jours ou plus.\nLivraison locale : gratuite, dans un rayon de 100 km autour de Pélissanne, si votre adresse est dans la zone proposée au moment du paiement.`
     }, {
       heading: '7. Droit de rétractation',
-      text: `Conformément à l'article L221-18 du Code de la consommation, vous disposez d'un délai de 14 jours à compter de la réception de votre commande pour exercer votre droit de rétractation, sans avoir à justifier de motifs. Pour exercer ce droit, contactez-nous à typique.fr@gmail.com. Les frais de retour sont à la charge du client. Le remboursement sera effectué dans les 14 jours suivant réception du retour.`
+      text: `Conformément à l'article L221-18 du Code de la consommation, vous disposez d'un délai de 14 jours à compter de la réception de votre commande pour exercer votre droit de rétractation, sans avoir à justifier de motifs.\nPour l'exercer, informez-nous de votre décision avant la fin de ce délai, par email à ${EMAIL_CONTACT}, en indiquant clairement que vous vous rétractez. Vous pouvez utiliser le modèle de formulaire ci-dessous.\nVous renvoyez ensuite le ou les articles sans retard excessif et au plus tard 14 jours après nous avoir informés de votre décision. Les frais de retour sont à votre charge.\nNous vous remboursons la totalité des sommes versées, y compris les frais de livraison standard, sans retard excessif et au plus tard 14 jours après avoir été informés de votre décision de vous rétracter. Nous pouvons différer ce remboursement jusqu'à la réception des articles ou jusqu'à ce que vous ayez fourni une preuve d'expédition, la date retenue étant celle du premier de ces faits. Le remboursement est effectué par le même moyen de paiement que celui utilisé pour la commande.`
     }, {
-      heading: '8. Réclamations',
-      text: `Pour toute réclamation, contactez-nous à typique.fr@gmail.com. En cas de litige, une solution amiable sera recherchée avant tout recours judiciaire. Le client peut également recourir à la plateforme européenne de règlement en ligne des litiges : ec.europa.eu/consumers/odr`
+      heading: 'Modèle de formulaire de rétractation',
+      text: `(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous rétracter du contrat.)\nÀ l'attention de Coline Chartier, Typique, 58 rue Denise Vernay, 13330 Pélissanne, ${EMAIL_CONTACT} :\nJe/Nous (*) vous notifie/notifions (*) par la présente ma/notre (*) rétractation du contrat portant sur la vente du bien ci-dessous :\nCommandé le (*) / reçu le (*) :\nNom du (des) consommateur(s) :\nAdresse du (des) consommateur(s) :\nSignature du (des) consommateur(s) (uniquement en cas de notification du présent formulaire sur papier) :\nDate :\n(*) Rayez la mention inutile.`
     }, {
-      heading: '9. Droit applicable',
-      text: `Les présentes CGV sont soumises au droit français. Tout litige relatif à leur interprétation ou exécution relève des tribunaux compétents de Aix-en-Provence.`
+      heading: '8. Garanties légales',
+      text: `Typique répond des défauts de conformité qui existent au moment de la délivrance du bien (garantie légale de conformité, articles L217-3 et suivants du Code de la consommation) et des vices cachés de la chose vendue (articles 1641 et suivants du Code civil).\nUn défaut de conformité qui apparaît dans les 2 ans suivant la délivrance du bien est présumé exister au moment de la délivrance. Vous pouvez alors demander la réparation ou le remplacement du bien, dans les conditions prévues par la loi. L'action pour vice caché doit être engagée dans les 2 ans suivant la découverte du vice.\nPour toute demande, écrivez-nous à ${EMAIL_CONTACT}.`
+    }, {
+      heading: '9. Réclamations',
+      text: `Pour toute réclamation, contactez-nous à ${EMAIL_CONTACT}. En cas de litige, une solution amiable sera recherchée avant tout recours judiciaire.`
+    }, {
+      heading: '10. Droit applicable',
+      text: `Les présentes CGV sont soumises au droit français. Tout litige relatif à leur interprétation ou à leur exécution relève des tribunaux compétents selon les règles de droit commun.`
     }]
   },
   confidentialite: {
     title: 'Politique de confidentialité',
     sections: [{
       heading: 'Responsable du traitement',
-      text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nEmail : typique.fr@gmail.com`
+      text: `Coline Chartier, Typique\n58 rue Denise Vernay, 13330 Pélissanne\nEmail : ${EMAIL_CONTACT}`
     }, {
       heading: 'Données collectées',
-      text: `Lors d'une commande : nom, prénom, adresse de livraison, adresse email, numéro de téléphone.\nVia le formulaire d'alertes drop : adresse email uniquement.\nAucune donnée bancaire n'est collectée ou conservée par Typique. Le paiement est traité par Shopify Payments.`
+      text: `Lors d'une commande : nom, prénom, adresse de livraison, adresse email, numéro de téléphone.\nAucune donnée bancaire n'est collectée ou conservée par Typique. Le paiement est traité par Shopify Payments ou par le service de paiement que vous choisissez (PayPal, Klarna).`
     }, {
       heading: 'Finalités du traitement',
-      text: `Les données collectées sont utilisées pour :\n• Traiter et expédier vos commandes\n• Vous envoyer votre confirmation de commande et suivi de livraison\n• Vous informer des prochains drops si vous y avez consenti\n• Respecter nos obligations légales et comptables`
+      text: `Les données collectées sont utilisées pour :\n• Traiter et expédier vos commandes\n• Vous envoyer votre confirmation de commande et suivi de livraison\n• Respecter nos obligations légales et comptables`
     }, {
       heading: 'Base légale',
-      text: `Le traitement de vos données est fondé sur l'exécution du contrat de vente (commandes), votre consentement (alertes drops) et notre intérêt légitime (gestion administrative).`
+      text: `Le traitement de vos données est fondé sur l'exécution du contrat de vente (commandes) et notre intérêt légitime (gestion administrative).`
     }, {
       heading: 'Durée de conservation',
-      text: `Données de commande : 10 ans (obligation comptable légale).\nEmails d'alerte drop : jusqu'à désinscription ou 3 ans sans activité.`
+      text: `Données de commande : 10 ans (obligation comptable légale).`
     }, {
       heading: 'Vos droits',
-      text: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos données. Pour exercer ces droits, écrivez à typique.fr@gmail.com. Vous avez également le droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
+      text: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos données. Pour exercer ces droits, écrivez à ${EMAIL_CONTACT}. Vous avez également le droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
     }, {
       heading: 'Cookies',
       text: `Ce site n'utilise pas de cookies de traçage ou publicitaires. Des cookies techniques strictement nécessaires au fonctionnement du site peuvent être déposés.`
     }, {
       heading: 'Sous-traitants',
-      text: `Shopify Inc. (paiement et gestion des commandes), conforme RGPD.\nVercel Inc. (hébergement), conforme RGPD.\nBrevo (Sendinblue SAS, France : envoi des emails d'alerte drop), conforme RGPD.`
+      text: `Shopify Inc. (paiement et gestion des commandes), conforme RGPD.\nVercel Inc. (hébergement), conforme RGPD.\nLa Poste (Colissimo : livraison des commandes).`
     }]
   }
 };
+
+// ============================================================
+// AIDE : LIVRAISON ET RETOURS, FAQ
+// ============================================================
+// Mêmes règles que les CGV (France métropolitaine, 3 à 5 jours ouvrés, 14 jours, retour à la charge du client).
+// Aucune date de livraison ni d'expédition n'est annoncée : choix de Coline.
+const AIDE_CONTENT = {
+  livraison: {
+    title: 'Livraison et retours',
+    sections: [{
+      heading: 'Livraison à domicile',
+      text: `Colissimo, ${FRAIS_COLISSIMO}, en France métropolitaine uniquement. Les frais s'affichent avant le paiement.\nLes commandes passées pendant un drop sont expédiées en lot après sa fermeture. Tu reçois un email avec ton numéro de suivi quand ta commande part, puis Colissimo livre en 3 à 5 jours ouvrés.`
+    }, {
+      heading: 'Retrait gratuit à Pélissanne',
+      text: `Choisis le retrait au moment du paiement, l'adresse s'y affiche. Ta commande est généralement prête en 5 jours ou plus.`
+    }, {
+      heading: 'Livraison locale gratuite',
+      text: `Dans un rayon de 100 km autour de Pélissanne, la livraison locale est gratuite. Elle apparaît au moment du paiement si ton adresse est dans la zone.`
+    }, {
+      heading: 'Retours',
+      text: `Tu as 14 jours à partir de la réception de ta commande pour te rétracter, sans avoir à donner de raison. Pour cela, écris-nous à ${EMAIL_CONTACT} : nous te répondons avec la marche à suivre. Tu renvoies ensuite ton colis dans les 14 jours après nous avoir prévenus.\nLes frais de retour sont à ta charge. Nous te remboursons, frais de livraison standard compris, au plus tard 14 jours après avoir été prévenus de ta rétractation. Nous pouvons attendre de recevoir ton colis (ou la preuve de son envoi) avant de te rembourser.`
+    }, {
+      heading: 'Un souci avec ta commande ?',
+      text: `Article abîmé, erreur dans ta commande, colis qui n'arrive pas : écris-nous à ${EMAIL_CONTACT}.`
+    }]
+  },
+  faq: {
+    title: 'Questions fréquentes',
+    sections: [{
+      heading: 'Quelle taille choisir ?',
+      text: `Les pièces Typique sont coupées oversize. Pour les t-shirts du Drop 01 (Le Ferret, L'Entre Deux, Sable chaud), nous conseillons aux femmes de prendre une taille en dessous de leur taille habituelle.`
+    }, {
+      heading: 'Combien coûte la livraison ?',
+      text: `Colissimo à domicile : ${FRAIS_COLISSIMO}, en France métropolitaine. Le retrait à Pélissanne est gratuit, et la livraison locale aussi, dans un rayon de 100 km.`
+    }, {
+      heading: 'Quand vais-je recevoir ma commande ?',
+      text: `Pour la livraison à domicile, les commandes passées pendant un drop sont expédiées en lot après sa fermeture. Tu reçois un email avec ton numéro de suivi quand ta commande part, puis Colissimo livre en 3 à 5 jours ouvrés. Pour le retrait, ta commande est généralement prête en 5 jours ou plus.`
+    }, {
+      heading: 'Puis-je retourner un article ?',
+      text: `Oui. Tu as 14 jours à partir de la réception pour te rétracter, sans donner de raison. Écris-nous à ${EMAIL_CONTACT}. Les frais de retour sont à ta charge. Le détail est dans l'onglet « Livraison et retours ».`
+    }, {
+      heading: 'Et si la taille ne me va pas ?',
+      text: `Tu peux te rétracter dans les 14 jours, comme pour tout retour. Les pièces sont fabriquées en quantités limitées : une autre taille peut être épuisée.`
+    }, {
+      heading: 'Comment entretenir mes pièces ?',
+      text: `Lave-les à 30° et à l'envers.`
+    }, {
+      heading: 'Le paiement est-il sécurisé ?',
+      text: `Oui. Tu paies sur la page de paiement sécurisée de Shopify, par carte bancaire, Apple Pay, PayPal ou Klarna selon ce qui t'est proposé. Typique ne collecte et ne conserve aucune donnée bancaire.`
+    }]
+  }
+};
+
+// Rend cliquables les adresses email d'un texte (pour écrire d'un geste depuis un téléphone).
+function texteAvecMails(texte) {
+  return texte.split(/([\w.+-]+@[\w-]+(?:\.[\w-]+)+)/g).map((morceau, i) => i % 2 === 1 ? /*#__PURE__*/React.createElement("a", {
+    key: i,
+    href: `mailto:${morceau}`,
+    style: {
+      color: 'inherit',
+      textDecoration: 'underline',
+      textUnderlineOffset: 3
+    }
+  }, morceau) : morceau);
+}
 function LegalModal({
   page,
   onClose
 }) {
-  const content = LEGAL_CONTENT[page];
-  const pages = [{
+  // Deux familles de pages dans la même fenêtre : l'aide aux clients (livraison, FAQ) et les textes légaux.
+  const estAide = page in AIDE_CONTENT;
+  const pages = estAide ? [{
+    key: 'livraison',
+    label: 'Livraison et retours'
+  }, {
+    key: 'faq',
+    label: 'FAQ'
+  }] : [{
     key: 'mentions',
     label: 'Mentions légales'
   }, {
@@ -1554,14 +1640,16 @@ function LegalModal({
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', onKey);
+    // Le défilement est rendu tel qu'on l'a trouvé : la fenêtre peut s'ouvrir par-dessus une fiche produit.
+    const defilementAvant = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
+      document.body.style.overflow = defilementAvant;
     };
   }, []);
   const [activePage, setActivePage] = useState(page);
-  const c = LEGAL_CONTENT[activePage];
+  const c = LEGAL_CONTENT[activePage] || AIDE_CONTENT[activePage];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
@@ -1610,7 +1698,7 @@ function LegalModal({
     style: {
       opacity: 0.45
     }
-  }, "Informations l\xE9gales"), /*#__PURE__*/React.createElement("button", {
+  }, estAide ? 'Aide' : 'Informations légales'), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: {
       background: 'rgba(15,40,101,0.08)',
@@ -1677,7 +1765,7 @@ function LegalModal({
       opacity: 0.8,
       whiteSpace: 'pre-line'
     }
-  }, s.text)))), /*#__PURE__*/React.createElement("p", {
+  }, estAide ? texteAvecMails(s.text) : s.text)))), !estAide && /*#__PURE__*/React.createElement("p", {
     className: "font-serif-fine italic text-xs mt-10",
     style: {
       opacity: 0.4
@@ -1966,8 +2054,13 @@ function ProductModal({
   product: p,
   onClose,
   onAddToCart,
-  dropStatus
+  dropStatus,
+  onOpenAide,
+  aideOuverte
 }) {
+  // Échap ferme la fenêtre du dessus : si « Livraison et retours » est ouverte par-dessus la fiche, la fiche reste.
+  const aideRef = useRef(false);
+  aideRef.current = aideOuverte;
   const [selectedSize, setSelectedSize] = useState(null);
   const [buying, setBuying] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
@@ -1980,7 +2073,7 @@ function ProductModal({
   // Fermer avec Échap + bouton retour navigateur
   useEffect(() => {
     const onKey = e => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !aideRef.current) onClose();
     };
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
@@ -2249,7 +2342,18 @@ function ProductModal({
     ouvert: 'Ajouter au panier →',
     chargement: 'Chargement…',
     indisponible: 'Indisponible'
-  }[etat] || 'Bientôt disponible'))))), /*#__PURE__*/React.createElement("style", null, `
+  }[etat] || 'Bientôt disponible')), /*#__PURE__*/React.createElement("button", {
+    onClick: onOpenAide,
+    className: "link-under font-typewriter text-[11px] tracking-wider mt-5 self-start",
+    style: {
+      background: 'none',
+      border: 'none',
+      color: '#0F2865',
+      opacity: 0.6,
+      cursor: 'pointer',
+      padding: 0
+    }
+  }, "Livraison et retours \u2192")))), /*#__PURE__*/React.createElement("style", null, `
         @media (max-width: 640px) {
           .modal-inner { flex-direction: column !important; overflow-y: auto !important; }
           .modal-photo-col { flex: 0 0 auto !important; width: 100% !important; height: 52vh !important; min-height: unset !important; }
@@ -2592,7 +2696,7 @@ function TypiqueSite() {
     etat: 'chargement',
     pieces: {}
   });
-  const [legalModal, setLegalModal] = useState(null); // 'cgv' | 'mentions' | 'confidentialite'
+  const [legalModal, setLegalModal] = useState(null); // 'cgv' | 'mentions' | 'confidentialite' | 'livraison' | 'faq'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -2993,7 +3097,9 @@ function TypiqueSite() {
     product: detailProduct,
     onClose: () => setDetailId(null),
     onAddToCart: addToCart,
-    dropStatus: dropStatus
+    dropStatus: dropStatus,
+    onOpenAide: () => setLegalModal('livraison'),
+    aideOuverte: !!legalModal
   }), legalModal && /*#__PURE__*/React.createElement(LegalModal, {
     page: legalModal,
     onClose: () => setLegalModal(null)
@@ -3628,6 +3734,26 @@ function TypiqueSite() {
     href: "#alertes",
     className: "link-under"
   }, "Alertes drops")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setLegalModal('livraison'),
+    className: "link-under font-serif text-base",
+    style: {
+      background: 'none',
+      border: 'none',
+      color: 'inherit',
+      cursor: 'pointer',
+      padding: 0
+    }
+  }, "Livraison et retours")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setLegalModal('faq'),
+    className: "link-under font-serif text-base",
+    style: {
+      background: 'none',
+      border: 'none',
+      color: 'inherit',
+      cursor: 'pointer',
+      padding: 0
+    }
+  }, "FAQ")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("button", {
     onClick: () => setLegalModal('mentions'),
     className: "link-under font-serif text-base",
     style: {
@@ -3676,12 +3802,12 @@ function TypiqueSite() {
     size: 16,
     strokeWidth: 1.5
   }), "@typique.fr")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("a", {
-    href: "mailto:bonjour@typique.fr",
+    href: `mailto:${EMAIL_CONTACT}`,
     className: "inline-flex items-center gap-3 font-serif text-base link-under"
   }, /*#__PURE__*/React.createElement(Mail, {
     size: 16,
     strokeWidth: 1.5
-  }), "bonjour@typique.fr"))), /*#__PURE__*/React.createElement("div", {
+  }), EMAIL_CONTACT))), /*#__PURE__*/React.createElement("div", {
     className: "mt-10 max-w-xs"
   }, /*#__PURE__*/React.createElement("p", {
     className: "font-serif-fine italic text-sm leading-relaxed",
