@@ -37,7 +37,7 @@ var WAVE_DIVIDER='/photos/wave_divider.png?v=73e425ea9e';
 var HERO_540='/media/hero-540.mp4?v=6a669a2ca7';
 var HERO_720='/media/hero-720.mp4?v=e86924ff66';
 var HERO_POSTER='/media/hero-poster.webp?v=a546545392';
-var DROP_REGLAGE={"nom":"Drop 02","ouverture":"2026-11-06T12:00:00+01:00","fermeture":"2026-11-27T00:00:00+01:00","ouvertureTexte":"le vendredi 6 novembre à 12 h","fermetureTexte":"à minuit, dans la nuit du jeudi 26 au vendredi 27 novembre","nouvelleCollection":["ts-estaque","ts-pinede","ts-soleilcouchant","ts-petitmatin","sw-pleincagnard","sw-minot","sw-corpssale"],"anciennesPieces":["ts-ferret","ts-entredeux","ts-sable","sw-mistral","sw-tchanquee","sw-surfer","acc-pilat","acc-garrigue"],"shopifyIds":{"ts-ferret":"15770490175872","ts-entredeux":"15770490962304","ts-sable":"15770491683200","sw-mistral":"15770492764544","sw-tchanquee":"15770493616512","sw-surfer":"15770494566784","acc-pilat":"15778216706432","acc-garrigue":"15778220343680"},"textesLegauxMisAJour":"novembre 2026"};
+var DROP_REGLAGE={"nom":"Drop 02","ouverture":"2026-11-06T12:00:00+01:00","fermeture":"2026-11-27T00:00:00+01:00","ouvertureTexte":"le vendredi 6 novembre à 12 h","fermetureTexte":"à minuit, dans la nuit du jeudi 26 au vendredi 27 novembre","nouvelleCollection":["ts-estaque","ts-pinede","ts-soleilcouchant","ts-petitmatin","sw-pleincagnard","sw-minot","sw-corpssale"],"anciennesPieces":["ts-ferret","ts-entredeux","ts-sable","sw-mistral","sw-tchanquee","sw-surfer","acc-pilat","acc-garrigue"],"shopifyIds":{"ts-estaque":"16041054962048","ts-pinede":"16041054994816","ts-soleilcouchant":"16041055027584","ts-petitmatin":"16041055060352","sw-pleincagnard":"16041055125888","sw-minot":"16041055191424","sw-corpssale":"16041055256960","ts-ferret":"15770490175872","ts-entredeux":"15770490962304","ts-sable":"15770491683200","sw-mistral":"15770492764544","sw-tchanquee":"15770493616512","sw-surfer":"15770494566784","acc-pilat":"15778216706432","acc-garrigue":"15778220343680"},"textesLegauxMisAJour":"novembre 2026"};
 const {
   useState,
   useEffect,
@@ -2789,22 +2789,24 @@ function TypiqueSite() {
     id: 'ts-estaque',
     cat: 'T-SHIRTS',
     name: "L'Estaque",
+    sizeNote: '100 % coton biologique peigné, 200 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#F7F6F3',
       label: 'Blanc'
     },
-    desc: '',
+    desc: "Un chichi frégi à la main, le port devant soi : un dimanche à L'Estaque.",
     photos: [ESTAQUE_AVANT, ESTAQUE_ARRIERE],
     bg: '#E8E3DB'
   }, {
     id: 'ts-pinede',
     cat: 'T-SHIRTS',
     name: 'La Pinède',
+    sizeNote: '100 % coton biologique peigné, 200 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#EDE8DF',
       label: 'Crème'
     },
-    desc: '',
+    desc: "Vert olive et kaki clair, l'odeur de résine et l'ombre qu'on cherche à midi.",
     photos: [PINEDE_AVANT, PINEDE_ARRIERE],
     bg: '#E8E3DB'
   }, {
@@ -2850,13 +2852,13 @@ function TypiqueSite() {
     name: 'Sable chaud',
     sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
     color: {
-      hex: '#D6C8B4',
-      label: 'Crème'
+      hex: '#F7F6F3',
+      label: 'Blanc'
     },
     desc: 'Le plus discret de la collection. Des vêtements simples et épurés, comme on aime.',
     photos: [SABLE_AVANT, SABLE_ARRIERE],
     mockup: /*#__PURE__*/React.createElement(TshirtMockup, {
-      bodyColor: "#C4B49A",
+      bodyColor: "#F7F6F3",
       letterColor: "#E39A7C",
       letterStroke: "rgba(227,154,124,0.3)"
     }),
@@ -2865,55 +2867,60 @@ function TypiqueSite() {
     id: 'ts-soleilcouchant',
     cat: 'MANCHES LONGUES',
     name: 'Soleil couchant',
+    sizeNote: '100 % coton biologique peigné, 180 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#5A2430',
       label: 'Bordeaux'
     },
-    desc: '',
+    desc: "Bordeaux comme le ciel quand le soleil tombe, la dernière lumière de la journée dans le dos.",
     photos: [SOLEILCOUCHANT_AVANT, SOLEILCOUCHANT_ARRIERE],
     bg: '#E8E3DB'
   }, {
     id: 'ts-petitmatin',
     cat: 'MANCHES LONGUES',
     name: 'Petit matin',
+    sizeNote: '100 % coton biologique peigné, 180 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#F7F6F3',
       label: 'Blanc'
     },
-    desc: '',
+    desc: "Blanc comme la première lumière, avant que la plage se remplisse, avec un soleil jaune qui se lève dans le dos.",
     photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE],
     bg: '#E8E3DB'
   }, {
     id: 'sw-pleincagnard',
     cat: 'SWEATS',
     name: 'Plein cagnard',
+    sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#EDE8DF',
       label: 'Crème'
     },
-    desc: '',
+    desc: "Plein cagnard : le soleil tape fort, l'ombre devient une affaire sérieuse et personne ne bouge.",
     photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE],
     bg: '#E8E3DB'
   }, {
     id: 'sw-minot',
     cat: 'SWEATS',
     name: 'Le Minot du Sud',
+    sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {
       hex: '#2F2F31',
       label: 'Anthracite'
     },
-    desc: '',
+    desc: "Minot, le gamin en marseillais, devenu grand mais toujours enfant du Sud.",
     photos: [MINOT_AVANT, MINOT_ARRIERE],
     bg: '#E8E3DB'
   }, {
     id: 'sw-corpssale',
     cat: 'SWEATS',
     name: 'Corps Salé Coeur Solaire',
+    sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {
-      hex: '#7E5A55',
-      label: 'Brun rosé'
+      hex: '#775855',
+      label: 'Mocha'
     },
-    desc: '',
+    desc: "Le sel sur la peau, le soleil dans le cœur, écrits en corail et en pêche sur fond mocha.",
     photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE],
     bg: '#E8E3DB'
   }, {

@@ -1807,13 +1807,17 @@ function TypiqueSite() {
     {
       id: 'ts-estaque', cat: 'T-SHIRTS',
       name: "L'Estaque",
-      color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
+      sizeNote: '100 % coton biologique peigné, 200 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      color: { hex: '#F7F6F3', label: 'Blanc' },
+      desc: "Un chichi frégi à la main, le port devant soi : un dimanche à L'Estaque.",
       photos: [ESTAQUE_AVANT, ESTAQUE_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'ts-pinede', cat: 'T-SHIRTS',
       name: 'La Pinède',
-      color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
+      sizeNote: '100 % coton biologique peigné, 200 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      color: { hex: '#EDE8DF', label: 'Crème' },
+      desc: "Vert olive et kaki clair, l'odeur de résine et l'ombre qu'on cherche à midi.",
       photos: [PINEDE_AVANT, PINEDE_ARRIERE], bg: '#E8E3DB'
     },
     {
@@ -1838,39 +1842,49 @@ function TypiqueSite() {
       id: 'ts-sable', ref: 'TS 03', cat: 'T-SHIRTS',
       name: 'Sable chaud',
       sizeNote: 'Coupe oversize · Conseillé de prendre une taille en dessous de votre taille habituelle pour les femmes · Laver à 30° à l\'envers',
-      color: { hex: '#D6C8B4', label: 'Crème' },
+      color: { hex: '#F7F6F3', label: 'Blanc' },
       desc: 'Le plus discret de la collection. Des vêtements simples et épurés, comme on aime.',
       photos: [SABLE_AVANT, SABLE_ARRIERE],
-      mockup: <TshirtMockup bodyColor="#C4B49A" letterColor="#E39A7C" letterStroke="rgba(227,154,124,0.3)" />, bg: '#EDE7DC'
+      mockup: <TshirtMockup bodyColor="#F7F6F3" letterColor="#E39A7C" letterStroke="rgba(227,154,124,0.3)" />, bg: '#EDE7DC'
     },
     {
       id: 'ts-soleilcouchant', cat: 'MANCHES LONGUES',
       name: 'Soleil couchant',
-      color: { hex: '#5A2430', label: 'Bordeaux' }, desc: '',
+      sizeNote: '100 % coton biologique peigné, 180 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      color: { hex: '#5A2430', label: 'Bordeaux' },
+      desc: "Bordeaux comme le ciel quand le soleil tombe, la dernière lumière de la journée dans le dos.",
       photos: [SOLEILCOUCHANT_AVANT, SOLEILCOUCHANT_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'ts-petitmatin', cat: 'MANCHES LONGUES',
       name: 'Petit matin',
-      color: { hex: '#F7F6F3', label: 'Blanc' }, desc: '',
+      sizeNote: '100 % coton biologique peigné, 180 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      color: { hex: '#F7F6F3', label: 'Blanc' },
+      desc: "Blanc comme la première lumière, avant que la plage se remplisse, avec un soleil jaune qui se lève dans le dos.",
       photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-pleincagnard', cat: 'SWEATS',
       name: 'Plein cagnard',
-      color: { hex: '#EDE8DF', label: 'Crème' }, desc: '',
+      sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      color: { hex: '#EDE8DF', label: 'Crème' },
+      desc: "Plein cagnard : le soleil tape fort, l'ombre devient une affaire sérieuse et personne ne bouge.",
       photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-minot', cat: 'SWEATS',
       name: 'Le Minot du Sud',
-      color: { hex: '#2F2F31', label: 'Anthracite' }, desc: '',
+      sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      color: { hex: '#2F2F31', label: 'Anthracite' },
+      desc: "Minot, le gamin en marseillais, devenu grand mais toujours enfant du Sud.",
       photos: [MINOT_AVANT, MINOT_ARRIERE], bg: '#E8E3DB'
     },
     {
       id: 'sw-corpssale', cat: 'SWEATS',
       name: 'Corps Salé Coeur Solaire',
-      color: { hex: '#7E5A55', label: 'Brun rosé' }, desc: '',
+      sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      color: { hex: '#775855', label: 'Mocha' },
+      desc: "Le sel sur la peau, le soleil dans le cœur, écrits en corail et en pêche sur fond mocha.",
       photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE], bg: '#E8E3DB'
     },
     {

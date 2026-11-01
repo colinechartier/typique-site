@@ -13,9 +13,15 @@ import build
 
 PORT, CDP_PORT = 8092, 9335
 app = open(os.path.join(ROOT, "app.js"), encoding="utf-8").read()
-app_ouvert, n1 = re.subn(r'"ouverture":"[^"]+"', '"ouverture":"2000-01-01T00:00:00+01:00"', app)
-app_ouvert, n2 = re.subn(r'"fermeture":"[^"]+"', '"fermeture":"2099-12-31T23:59:00+01:00"', app_ouvert)
+app_reel, n1 = re.subn(r'"ouverture":"[^"]+"', '"ouverture":"2000-01-01T00:00:00+01:00"', app)
+app_reel, n2 = re.subn(r'"fermeture":"[^"]+"', '"fermeture":"2099-12-31T23:59:00+01:00"', app_reel)
 assert n1 == 1 and n2 == 1, "dates du drop introuvables dans app.js"
+# Drop ouvert avec le réglage du jour tel quel : le site comme il sera en ligne (scénario 4, variante « reel »).
+# Les autres scénarios partent d'une nouvelle collection pas encore reliée à Shopify : on retire ses identifiants de la copie servie.
+app_ouvert = app_reel
+for ident, _, _ in build.lire_reglage(build.REGLAGE)["nouvelles"]:
+    app_ouvert = re.sub(r'"%s":"\d+",?' % re.escape(ident), "", app_ouvert)
+    assert '"%s":"' % ident not in app_ouvert, "identifiant de la nouvelle collection encore présent dans la copie servie"
 # Drop ouvert, et deux pièces de la nouvelle collection reliées à Shopify pour l'essai : L'Estaque = Le Ferret (existe),
 # La Pinède = identifiant que Shopify ne connaît pas.
 FERRET = "15770490175872"
@@ -24,7 +30,7 @@ assert app_essai != app_ouvert
 # Une ancienne pièce (La Garrigue) dont l'identifiant est inconnu de Shopify disparaît : variante pour le scénario « inconnue ».
 app_inconnue = re.sub(r'("acc-garrigue":")\d+', r'\g<1>2', app_ouvert, count=1)
 assert app_inconnue != app_ouvert
-VARIANTES = {"/app.js": app_ouvert, "/app-essai.js": app_essai, "/app-inconnue.js": app_inconnue}
+VARIANTES = {"/app.js": app_ouvert, "/app-essai.js": app_essai, "/app-inconnue.js": app_inconnue, "/app-reel.js": app_reel}
 
 
 class H(http.server.SimpleHTTPRequestHandler):
@@ -284,6 +290,17 @@ try:
     x, y = carte("L'Estaque"), carte("La Pinède")
     verifie(x and x["prix"] == "44 €" and x["bouton"] == "+ Panier" and len(x["tailles"]) == 6, f"L'Estaque (identifiant du Ferret) : {x['prix']}, {len(x['tailles'])} tailles, {x['bouton']}")
     verifie(y and y["bouton"] == "Bientôt" and not y["prix"] and not y["tailles"], "La Pinède (identifiant inconnu de Shopify) : « Bientôt », sans prix")
+    # Le site comme il sera : la nouvelle collection reliée à Shopify telle que réglée dans reglage-drop.ini (réponse réelle).
+    reliees = [build.sans_accent(nom) for _, nom, sid in build.lire_reglage(build.REGLAGE)["nouvelles"] if sid]
+    if reliees:
+        recharger("{}", variante="reel")
+        attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+        attendre("[...document.querySelectorAll('article.product-card')].some(a => a.textContent.includes('+ Panier'))", 15)
+        reel = {build.sans_accent(z["nom"]): z for z in cartes()}
+        verifie(all(reel.get(n) and reel[n]["bouton"] == "+ Panier" and reel[n]["prix"] and reel[n]["tailles"] for n in reliees),
+                f"réglage du jour : les {len(reliees)} pièces reliées à Shopify ont un prix, des tailles et « + Panier »")
+    else:
+        print("  (aucune pièce de la nouvelle collection n'est reliée dans reglage-drop.ini : rien à vérifier ici)")
 
     # ---------------------------------------------------------------- 5. Prix retouchés
     print("\n5. Le prix suit Shopify, taille par taille (44 → 45,5 en XS et 46 en M)")
