@@ -169,7 +169,7 @@ def tester(p, etiquette, fichier, moteur, lancement, contexte):
         # fenêtres légales : chacune avec ce qu'elle doit contenir
         for lien, attendus in (("Mentions légales", ["USA (vercel.com)"]),
                                ("CGV", ["Coline Chartier, Typique", "4. Commandes : modèle drop"]),
-                               ("Confidentialité", ["• Traiter et expédier vos commandes", "conservée par Typique. Le paiement est traité par Shopify Payments.", "Vercel Inc. (hébergement), conforme RGPD"])):
+                               ("Confidentialité", ["• Traiter et expédier vos commandes", "conservée par Typique. Le paiement est traité par Shopify Payments ou par le service de paiement que vous choisissez","Vercel Inc. (hébergement), conforme RGPD"])):
             page.locator("footer button", has_text=re.compile(rf"^\s*{re.escape(lien)}\s*$", re.I)).first.click(timeout=8000)
             page.wait_for_timeout(1200)
             texte = norm(page.inner_text("body"))
