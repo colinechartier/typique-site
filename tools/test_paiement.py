@@ -4,10 +4,12 @@ sur http://127.0.0.1:8091/ corrige app.js à la volée. Rien n'est payé : le te
   python3 tools/test_paiement.py                    # Le Ferret en M, jusqu'à la page de paiement
   python3 tools/test_paiement.py "Le Mistral|XXL|HOODIES" "La Garrigue|Taille unique|ACCESSOIRES"
   python3 tools/test_paiement.py --serveur          # le site seul, drop ouvert, pour un test à la main
+  python3 tools/test_paiement.py --reseau           # idem, joignable depuis l'iPhone (même Wi-Fi), sans les notes ni le réglage
 
 Onglets : T-SHIRTS, MANCHES LONGUES, HOODIES, ACCESSOIRES.
 """
 import http.server, json, os, re, sys, tempfile, threading, time, urllib.request
+from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -17,14 +19,44 @@ PORT, CDP_PORT = 8091, 9334
 app = open(os.path.join(ROOT, "app.js"), encoding="utf-8").read()
 # Drop forcé ouvert : dans la copie servie (jamais dans le dépôt), l'ouverture passe dans le passé et la fermeture très loin.
 app_ouvert, n1 = re.subn(r'"ouverture":"[^"]+"', '"ouverture":"2000-01-01T00:00:00+01:00"', app)
-app_ouvert, n2 = re.subn(r'"fermeture":"[^"]+"', '"fermeture":"2099-12-31T23:59:00+01:00"', app_ouvert)
+# La vraie fermeture est gardée tant qu'elle n'est pas passée : le compte à rebours montré à l'écran reste le vrai
+# (jours restants avant la fermeture du drop), au lieu de 26 000 jours. Passée, elle est repoussée en 2099.
+fermeture_reelle = re.search(r'"fermeture":"([^"]+)"', app).group(1)
+if datetime.fromisoformat(fermeture_reelle) > datetime.now(timezone.utc):
+    n2 = 1
+else:
+    app_ouvert, n2 = re.subn(r'"fermeture":"[^"]+"', '"fermeture":"2099-12-31T23:59:00+01:00"', app_ouvert)
 assert n1 == 1 and n2 == 1, "dates du drop introuvables dans app.js (variable DROP_REGLAGE)"
 APP_OUVERT = app_ouvert.encode()
 
 
+DOSSIER_SERVI = ROOT  # tout le projet, mais seulement sur ce Mac (127.0.0.1)
+RESEAU = sys.argv[1:] == ["--reseau"]
+if RESEAU:
+    # Joignable depuis le Wi-Fi de la maison : on ne sert qu'une copie de ce que Vercel publie (jamais les notes ni le réglage).
+    import shutil
+    DOSSIER_SERVI = tempfile.mkdtemp(prefix="typique-reseau-")
+    for nom in ("index.html", "app.js", "boutique.css", "favicon.ico", "icon-192.png", "apple-touch-icon.png",
+                "apercu", "legal", "photos", "media", "vendor"):
+        source = os.path.join(ROOT, nom)
+        (shutil.copytree if os.path.isdir(source) else shutil.copy2)(source, os.path.join(DOSSIER_SERVI, nom))
+
+
+def adresse_reseau():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))  # aucun paquet n'est envoyé : on lit seulement l'adresse choisie par le Mac
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
 class H(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
-        super().__init__(*a, directory=ROOT, **k)
+        super().__init__(*a, directory=DOSSIER_SERVI, **k)
 
     def log_message(self, *a):
         pass
@@ -40,9 +72,10 @@ class H(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
 
-srv = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), H)
-if sys.argv[1:] == ["--serveur"]:
-    print(f"Site avec le drop ouvert : http://127.0.0.1:{PORT}/apercu/ (Ctrl+C pour arrêter)", flush=True)
+srv = http.server.ThreadingHTTPServer(("0.0.0.0" if RESEAU else "127.0.0.1", PORT), H)
+if sys.argv[1:] in (["--serveur"], ["--reseau"]):
+    adresse = adresse_reseau() if RESEAU else "127.0.0.1"
+    print(f"Site avec le drop ouvert : http://{adresse}:{PORT}/apercu/ (Ctrl+C pour arrêter)", flush=True)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
@@ -105,6 +138,10 @@ try:
         js(f"[...{carte}.querySelectorAll('button')].find(x => x.textContent.trim() === '+ Panier').click()")
         time.sleep(0.8)
     assert attendre(f"{B}.some(b => b.textContent.includes('Commander'))", 10), "panier non ouvert"
+    attendu = (datetime.fromisoformat(fermeture_reelle) - datetime.now(timezone.utc)).total_seconds()
+    print("COMPTE À REBOURS DU SITE :", js("(() => { const m = document.body.innerText.replace(/\\s+/g, ' ').match(/\\d+ JOURS \\d+ HEURES \\d+ MIN \\d+ SEC/i);"
+                                          " return m ? m[0] : 'introuvable'; })()"),
+          "· attendu : %d jours %d heures" % (attendu // 86400, attendu % 86400 // 3600))
     print("PANIER DU SITE :", js(f"(() => {{ let el = {B}.find(b => b.textContent.includes('Commander'));"
                                  f" while (el && !el.textContent.includes({json.dumps(ITEMS[0][0])})) el = el.parentElement;"
                                  f" return el ? el.innerText.replace(/\\s+/g, ' ') : '?'; }})()"))
@@ -132,6 +169,16 @@ try:
     texte = js("document.body.innerText.replace(/\\s+/g, ' ')") or ""
     i = texte.find("Résumé de la commande")
     print("RÉSUMÉ SHOPIFY :", texte[i:i + 700] if i >= 0 else texte[:1500])
+    liens = js("JSON.stringify([...document.querySelectorAll('a')].map(a => [a.textContent.trim().replace(/\\s+/g, ' '), a.pathname])"
+               ".filter(x => /polic|politique|condition|mention|confidentialit|remboursement|exp[ée]dition|legal|terms|refund|privacy|shipping|contact/i.test(x[0] + x[1])))")
+    print("BAS DE PAGE SHOPIFY :", texte[-500:])
+    print("LIENS DES POLITIQUES (texte, chemin) :", liens)
+    ouvert = js("(() => { const b = [...document.querySelectorAll('button, a')].find(x => /Conditions générales et politiques/i.test(x.textContent));"
+                " if (!b) return 'bouton introuvable'; b.click(); return 'cliqué'; })()")
+    time.sleep(2)
+    print("FENÊTRE « Conditions générales et politiques » :", ouvert, js("(() => { const d = document.querySelector('dialog[open], [role=dialog]');"
+          " return d ? d.innerText.replace(/\\s+/g, ' ').slice(0, 900) : 'aucune fenêtre'; })()"))
+    print("LIENS APRÈS OUVERTURE :", js("JSON.stringify([...document.querySelectorAll('dialog[open] a, [role=dialog] a')].map(a => [a.textContent.trim().replace(/\\s+/g, ' '), a.pathname]))"))
     c.shot(os.path.join(profil, "paiement.png"))
     print("Capture :", os.path.join(profil, "paiement.png"))
     print("APPELS SHOPIFY :")

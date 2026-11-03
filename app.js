@@ -1,4 +1,4 @@
-var ACCESSOIRES_SHOWCASE='/photos/accessoires_showcase.webp?v=b00d0b4272';
+var ACCESSOIRES_SHOWCASE='/photos/accessoires_showcase.webp?v=ee6b79ad74';
 var BOB_PHOTO='/photos/bob_photo.webp?v=ed84152aac';
 var CASQUETTE_PHOTO='/photos/casquette_photo.webp?v=dddbba4b5d';
 var CORPSSALE_ARRIERE='/photos/corpssale_arriere.webp?v=01a3c9e9f8';
@@ -12,7 +12,8 @@ var FERRET_AVANT='/photos/ferret_avant.webp?v=2114ecaf24';
 var GARRIGUE_P1='/photos/garrigue_p1.webp?v=46392dcfbe';
 var GARRIGUE_P2='/photos/garrigue_p2.webp?v=36d1541475';
 var GARRIGUE_P3='/photos/garrigue_p3.webp?v=2a7800495d';
-var HOODIES_SHOWCASE='/photos/hoodies_showcase.webp?v=f3ba3e4846';
+var HOODIES_SHOWCASE='/photos/hoodies_showcase.webp?v=be0b971416';
+var MANCHES_LONGUES_SHOWCASE='/photos/manches_longues_showcase.webp?v=c3901814d4';
 var MINOT_ARRIERE='/photos/minot_arriere.webp?v=6ecf116b6e';
 var MINOT_AVANT='/photos/minot_avant.webp?v=1b28cb11fc';
 var MISTRAL_ARRIERE='/photos/mistral_arriere.webp?v=d54dc4c91a';
@@ -32,7 +33,7 @@ var SURFER_ARRIERE='/photos/surfer_arriere.webp?v=2a21557ca0';
 var SURFER_AVANT='/photos/surfer_avant.webp?v=5cdcfc6092';
 var TCHANQUEE_ARRIERE='/photos/tchanquee_arriere.webp?v=342d65ad9e';
 var TCHANQUEE_AVANT='/photos/tchanquee_avant.webp?v=e0f66c68a5';
-var TSHIRT_SHOWCASE='/photos/tshirt_showcase.webp?v=877a829552';
+var TSHIRT_SHOWCASE='/photos/tshirt_showcase.webp?v=635346d476';
 var WAVE_DIVIDER='/photos/wave_divider.png?v=73e425ea9e';
 var HERO_540='/media/hero-540.mp4?v=6a669a2ca7';
 var HERO_720='/media/hero-720.mp4?v=e86924ff66';
@@ -2496,7 +2497,7 @@ function BoutiqueShowcase({
     label: 'Manches longues',
     catKey: 'MANCHES LONGUES',
     ctaLabel: 'Voir les manches longues',
-    photo: SOLEILCOUCHANT_ARRIERE,
+    photo: typeof MANCHES_LONGUES_SHOWCASE !== 'undefined' ? MANCHES_LONGUES_SHOWCASE : SOLEILCOUCHANT_ARRIERE,
     photoPosition: 'center center',
     brightness: 0.38,
     wrap: true // deux mots : passe sur deux lignes sur téléphone
@@ -2509,7 +2510,7 @@ function BoutiqueShowcase({
     ctaLabel: 'Voir les hoodies',
     photo: typeof HOODIES_SHOWCASE !== 'undefined' ? HOODIES_SHOWCASE : typeof SURFER_P1 !== 'undefined' ? SURFER_P1 : null,
     photoPosition: 'center center',
-    brightness: 0.35
+    brightness: 0.75
   }, {
     bg: '#6B6F4A',
     textColor: '#F4F1EC',

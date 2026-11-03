@@ -47,9 +47,9 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 # ---------- Réglages ----------
-# Mode du dépôt : "attente" jusqu'au bloc 11, qui passe à "automatique" (l'ouverture du drop ne s'arme qu'à ce moment-là).
-# "boutique" : secours. Pour un essai : python3 tools/build.py automatique
-MODE = "attente"
+# Mode du dépôt : "automatique" depuis le bloc 11 (3/11/2026) : l'ouverture et la fermeture du drop sont armées.
+# "attente" ou "boutique" : secours (python3 tools/build.py attente, puis envoi sur main). Pour un essai : python3 tools/build.py attente
+MODE = "automatique"
 MODES = ("automatique", "attente", "boutique")
 # Adresse qui reçoit les inscriptions aux alertes drop (formulaire Brevo, etc.). Vide = non branché.
 ALERTES_ENDPOINT = ""

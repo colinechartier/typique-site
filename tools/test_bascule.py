@@ -80,6 +80,18 @@ OUVERTURE = datetime.strptime(re.search(r"^ouverture\s*=\s*(.+)$", ini, re.M).gr
 FERMETURE = datetime.strptime(re.search(r"^fermeture\s*=\s*(.+)$", ini, re.M).group(1).strip(), "%Y-%m-%d %H:%M").replace(tzinfo=PARIS)
 
 
+def pieces_du_reglage(section):
+    """(listées, reliées à Shopify) dans une partie du fichier de réglage : lignes « nom = identifiant »."""
+    m = re.search(r"^\[%s\]\s*$(.*?)(?=^\[|\Z)" % re.escape(section), ini, re.M | re.S)
+    lignes = [l.strip() for l in m.group(1).splitlines() if "=" in l and not l.strip().startswith(("#", ";"))]
+    return len(lignes), len([l for l in lignes if re.search(r"=\s*\d+\s*$", l)])
+
+
+NOUVELLES, NOUVELLES_RELIEES = pieces_du_reglage("nouvelle-collection")
+ANCIENNES, ANCIENNES_RELIEES = pieces_du_reglage("anciennes-pieces")
+ACHETABLES = NOUVELLES_RELIEES + ANCIENNES_RELIEES  # pendant le drop : toute pièce reliée à Shopify a un bouton « + Panier »
+
+
 def paris(dt, secondes=0):  # « 2026-11-06 11:59:50 », pour ?simuler=
     from datetime import timedelta
     return (dt + timedelta(seconds=secondes)).astimezone(PARIS).strftime("%Y-%m-%d %H:%M:%S")
@@ -149,8 +161,8 @@ def etat():
     return e
 
 
-# Les pièces du Drop 01 sont rangées par catégorie : on ouvre chaque onglet et on compte les boutons « + Panier ».
-ACHATS_DROP01 = """(async () => { let n = 0;
+# Toutes les pièces sont rangées par catégorie (Drop 01, et Drop 02 depuis le bloc 10) : on ouvre chaque onglet et on compte les boutons « + Panier ».
+ACHATS_CATEGORIES = """(async () => { let n = 0;
   for (const b of [...document.querySelectorAll('#root button')].filter(b => /^(t-shirts|manches longues|hoodies|accessoires)$/i.test(b.textContent.trim()))) {
     b.click(); await new Promise(r => setTimeout(r, 300));
     n += [...document.querySelectorAll('#root button')].filter(x => /\\+ Panier/.test(x.textContent)).length;
@@ -220,8 +232,10 @@ def bascule_ouverture():
     verifier("ouverture : à l'heure pile (4 à 6 s après le chargement)", ok and 2.0 <= delai + 1.5 <= 8.0, "%.1f s" % (delai + 1.5))
     verifier("ouverture : sans recharger la page", e.get("marque") == "meme-page", e.get("marque"))
     verifier("ouverture : boutique affichée, page d'attente masquée", e.get("boutique") and not e.get("attenteVisible"))
-    verifier("ouverture : 7 pièces du Drop 02 « Bientôt » (pas encore d'identifiant Shopify)", e.get("bientot") == 7 and e.get("achat") == 0, (e.get("achat"), e.get("bientot")))
-    verifier("ouverture : 8 pièces du Drop 01 achetables", js(ACHATS_DROP01) == 8, "")
+    verifier("ouverture : pièces du Drop 02 reliées à Shopify achetables, les autres « Bientôt »",
+             e.get("achat") == NOUVELLES_RELIEES and e.get("bientot") == NOUVELLES - NOUVELLES_RELIEES, (e.get("achat"), e.get("bientot")))
+    n = js(ACHATS_CATEGORIES)
+    verifier("ouverture : toutes les pièces reliées à Shopify achetables (Drop 01 et Drop 02)", n == ACHETABLES, (n, ACHETABLES))
     verifier("ouverture : bandeau « ouvert »", "DROP 02 OUVERT" in e.get("texteBoutique", "").upper(), "")
     verifier("ouverture : titre de l'onglet", e.get("titre") == "Typique · Entre sel et soleil", e.get("titre"))
 
@@ -235,7 +249,8 @@ def ouvert_direct():
     vues = js("window.__vues")
     verifier("ouvert : écran de chargement dès le départ (jamais la page d'attente)", vues and "attente" not in vues and vues[0] == "entree", vues)
     verifier("ouvert : boutique affichée", ok and e.get("boutique"), e.get("vue"))
-    verifier("ouvert : Drop 01 achetable", js(ACHATS_DROP01) == 8, "")
+    n = js(ACHATS_CATEGORIES)
+    verifier("ouvert : toutes les pièces reliées à Shopify achetables (Drop 01 et Drop 02)", n == ACHETABLES, (n, ACHETABLES))
 
 
 @scenario
@@ -326,11 +341,12 @@ def apercu():
     aller("/apercu/")
     c.wait("document.getElementById('root') && document.getElementById('root').children.length > 0", 15)
     r = json.loads(js("JSON.stringify({boutique: document.getElementById('root').children.length > 0, source: HORLOGE.source})"))
-    verifier("apercu : boutique affichée, aucun achat avant l'ouverture", r["boutique"] and js(ACHATS_DROP01) == 0, r)
+    verifier("apercu : boutique affichée, aucun achat avant l'ouverture", r["boutique"] and js(ACHATS_CATEGORIES) == 0, r)
     aller("/apercu/?simuler=" + paris(OUVERTURE, 3600))
     c.wait("document.getElementById('root').children.length > 0", 15)
     time.sleep(1)
-    verifier("apercu : pendant le drop, 8 pièces achetables", js(ACHATS_DROP01) == 8, "")
+    n = js(ACHATS_CATEGORIES)
+    verifier("apercu : pendant le drop, toutes les pièces reliées à Shopify achetables", n == ACHETABLES, (n, ACHETABLES))
 
 
 def reconstruire(mode=None):
@@ -360,7 +376,7 @@ def modes_de_secours():
     aller("/?simuler=" + paris(OUVERTURE, -86400 * 2))
     ok, _ = attendre_vue("boutique", 15)
     e = etat()
-    verifier("secours boutique : boutique montrée avant l'ouverture, sans bouton d'achat actif", ok and e.get("boutique") and js(ACHATS_DROP01) == 0, (e.get("vue"), e.get("achat")))
+    verifier("secours boutique : boutique montrée avant l'ouverture, sans bouton d'achat actif", ok and e.get("boutique") and js(ACHATS_CATEGORIES) == 0, (e.get("vue"), e.get("achat")))
     reconstruire()
 
 

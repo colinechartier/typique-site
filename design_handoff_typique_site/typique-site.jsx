@@ -1563,7 +1563,7 @@ function BoutiqueShowcase({ onSelectCategory }) {
       label: 'Manches longues',
       catKey: 'MANCHES LONGUES',
       ctaLabel: 'Voir les manches longues',
-      photo: SOLEILCOUCHANT_ARRIERE,
+      photo: typeof MANCHES_LONGUES_SHOWCASE !== 'undefined' ? MANCHES_LONGUES_SHOWCASE : SOLEILCOUCHANT_ARRIERE,
       photoPosition: 'center center',
       brightness: 0.38,
       wrap: true, // deux mots : passe sur deux lignes sur téléphone
@@ -1577,7 +1577,7 @@ function BoutiqueShowcase({ onSelectCategory }) {
       ctaLabel: 'Voir les hoodies',
       photo: typeof HOODIES_SHOWCASE !== 'undefined' ? HOODIES_SHOWCASE : (typeof SURFER_P1 !== 'undefined' ? SURFER_P1 : null),
       photoPosition: 'center center',
-      brightness: 0.35,
+      brightness: 0.75,
     },
     {
       bg: '#6B6F4A',
