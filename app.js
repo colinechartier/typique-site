@@ -25,6 +25,20 @@ var PINEDE_ARRIERE='/photos/pinede_arriere.webp?v=4547dce6b5';
 var PINEDE_AVANT='/photos/pinede_avant.webp?v=7275410c7c';
 var PLEINCAGNARD_ARRIERE='/photos/pleincagnard_arriere.webp?v=8bc7ffdd03';
 var PLEINCAGNARD_AVANT='/photos/pleincagnard_avant.webp?v=050779d86d';
+var PORTANT_CORPSSALE_DOS='/photos/portant_corpssale_dos.webp?v=1e8df341ce';
+var PORTANT_CORPSSALE_FACE='/photos/portant_corpssale_face.webp?v=12ea490991';
+var PORTANT_ESTAQUE_DOS='/photos/portant_estaque_dos.webp?v=083d737df4';
+var PORTANT_ESTAQUE_FACE='/photos/portant_estaque_face.webp?v=6cf5db8783';
+var PORTANT_MINOT_DOS='/photos/portant_minot_dos.webp?v=39e2e3527d';
+var PORTANT_MINOT_FACE='/photos/portant_minot_face.webp?v=fd0139d3be';
+var PORTANT_PETITMATIN_DOS='/photos/portant_petitmatin_dos.webp?v=cbf9741115';
+var PORTANT_PETITMATIN_FACE='/photos/portant_petitmatin_face.webp?v=8198a8db76';
+var PORTANT_PINEDE_DOS='/photos/portant_pinede_dos.webp?v=7a78a694b8';
+var PORTANT_PINEDE_FACE='/photos/portant_pinede_face.webp?v=3b4ed501e0';
+var PORTANT_PLEINCAGNARD_DOS='/photos/portant_pleincagnard_dos.webp?v=8bf8a71565';
+var PORTANT_PLEINCAGNARD_FACE='/photos/portant_pleincagnard_face.webp?v=cdc1bdcbab';
+var PORTANT_SOLEILCOUCHANT_DOS='/photos/portant_soleilcouchant_dos.webp?v=8342d8073e';
+var PORTANT_SOLEILCOUCHANT_FACE='/photos/portant_soleilcouchant_face.webp?v=80357756e9';
 var SABLE_ARRIERE='/photos/sable_arriere.webp?v=bccefefd4e';
 var SABLE_AVANT='/photos/sable_avant.webp?v=710f312534';
 var SOLEILCOUCHANT_ARRIERE='/photos/soleilcouchant_arriere.webp?v=6afa0c0092';
@@ -2447,6 +2461,579 @@ function ProductModal({
 }
 
 // ============================================================
+// LE PORTANT : la nouvelle collection accrochée sur une barre
+// Sur ordinateur, la pièce survolée grandit depuis son crochet ; sur téléphone, le portant se fait glisser
+// et la pièce du centre grandit. Au clic, la pièce glisse au centre, le reste se floute, et la fiche apparaît dessous.
+// Toutes les images ont le même cadre (photos/portant_*.webp, outil : tools/portant/), le crochet au même endroit.
+// ============================================================
+const PORTANT_Y_BARRE = 81; // hauteur du crochet dans la fiche, en pixels depuis le haut de l'écran
+const PORTANT_RATIO = 950 / 840; // hauteur / largeur du cadre commun
+const PORTANT_CROCHET = 0.0168; // hauteur du crochet dans le cadre
+const portantMobile = () => window.matchMedia('(max-width: 860px), (hover: none)').matches;
+const portantPlace = (el, b) => {
+  el.style.left = b.left + 'px';
+  el.style.top = b.top + 'px';
+  el.style.width = b.width + 'px';
+  el.style.height = b.height + 'px';
+};
+function Portant({
+  pieces,
+  dropStatus,
+  onAddToCart,
+  onOpenAide,
+  aideOuverte
+}) {
+  const [actifId, setActifId] = useState(null); // pièce survolée, ou au centre sur téléphone
+  const [ficheId, setFicheId] = useState(null); // pièce dont la fiche est ouverte
+  const [etape, setEtape] = useState(null); // 'pose' puis 'vol' puis 'ouverte' puis 'retour'
+  const [vue, setVue] = useState('dos'); // le dos d'abord : c'est lui qui porte le visuel
+  const [voulue, setVoulue] = useState(null); // aucune taille choisie d'avance
+  const [details, setDetails] = useState(false);
+  const [caches, setCaches] = useState([]); // pièces floutées juste derrière la pièce ouverte, effacées
+  const defileRef = useRef(null),
+    railRef = useRef(null),
+    racineRef = useRef(null),
+    volRef = useRef(null);
+  const infoRef = useRef(null),
+    flouRef = useRef(null),
+    prevRef = useRef(null),
+    nextRef = useRef(null),
+    fermerRef = useRef(null);
+  const occupe = useRef(false),
+    depart = useRef(null),
+    precharge = useRef(false),
+    histoire = useRef(false),
+    glisse = useRef(null);
+  const aideRef = useRef(false);
+  aideRef.current = aideOuverte;
+  const N = pieces.length;
+  const idxFiche = pieces.findIndex(p => p.id === ficheId);
+  const piece = idxFiche >= 0 ? pieces[idxFiche] : null;
+  const idxActif = pieces.findIndex(p => p.id === actifId);
+  const actif = idxActif >= 0 ? pieces[idxActif] : null;
+  const prechargerTout = () => {
+    if (precharge.current) return;
+    precharge.current = true;
+    pieces.forEach(p => {
+      new Image().src = p.portant.face;
+      new Image().src = p.portant.dos;
+    });
+  };
+  const elementPiece = id => railRef.current && railRef.current.querySelector(`[data-piece="${id}"]`);
+
+  // ---- téléphone : la pièce au centre de l'écran est la pièce active ----
+  const activeDepuisDefile = () => {
+    if (!portantMobile() || !railRef.current) return;
+    const milieu = window.innerWidth / 2;
+    let meilleur = null,
+      ecart = Infinity;
+    pieces.forEach(p => {
+      const el = elementPiece(p.id);
+      if (!el) return;
+      const r = el.getBoundingClientRect(),
+        d = Math.abs(r.left + r.width / 2 - milieu);
+      if (d < ecart) {
+        ecart = d;
+        meilleur = p.id;
+      }
+    });
+    setActifId(meilleur);
+  };
+  const centrer = id => {
+    const el = elementPiece(id),
+      defile = defileRef.current;
+    if (el && defile) defile.scrollLeft = el.offsetLeft + el.offsetWidth / 2 - window.innerWidth / 2;
+  };
+  React.useLayoutEffect(() => {
+    if (portantMobile() && N) {
+      const id = pieces[Math.floor((N - 1) / 2)].id;
+      centrer(id);
+      setActifId(id);
+    }
+  }, []);
+  const tic = useRef(false);
+  const auDefilement = () => {
+    if (ficheId || tic.current) return;
+    tic.current = true;
+    requestAnimationFrame(() => {
+      tic.current = false;
+      activeDepuisDefile();
+    });
+    prechargerTout();
+  };
+
+  // ---- positions : le cadre de la fiche est le même pour toutes les pièces, crochet au même endroit ----
+  const calerFiche = () => {
+    const mobile = portantMobile(),
+      infoH = infoRef.current.offsetHeight;
+    let H = Math.min(window.innerHeight - PORTANT_Y_BARRE - infoH - 4, window.innerHeight * (mobile ? 0.5 : 0.62), mobile ? 520 : 640);
+    H = Math.max(H, 220);
+    const W = H / PORTANT_RATIO;
+    const b = {
+      left: window.innerWidth / 2 - W / 2,
+      top: PORTANT_Y_BARRE - H * PORTANT_CROCHET,
+      width: W,
+      height: H
+    };
+    infoRef.current.style.top = b.top + b.height - 2 + 'px';
+    const ay = b.top + b.height * 0.45,
+      ecart = mobile ? window.innerWidth / 2 - 24 : Math.min(W * 0.78, window.innerWidth / 2 - 40),
+      rayon = mobile ? 17 : 19;
+    [[prevRef, -1], [nextRef, 1]].forEach(([ref, s]) => {
+      if (!ref.current) return;
+      ref.current.style.top = ay - rayon + 'px';
+      ref.current.style.left = window.innerWidth / 2 + s * ecart - rayon + 'px';
+    });
+    return b;
+  };
+  const caleFlou = (id, b) => {
+    const rail = railRef.current,
+      el = elementPiece(id);
+    if (!rail || !el || !flouRef.current) return;
+    if (portantMobile()) {
+      flouRef.current.style.setProperty('--decal', rail.offsetWidth / 2 - (el.offsetLeft + el.offsetWidth / 2) + 'px');
+      setCaches([]);
+    } else {
+      flouRef.current.style.setProperty('--decal', '0px');
+      const milieu = rail.offsetWidth / 2;
+      setCaches(pieces.filter(p => {
+        const e = elementPiece(p.id);
+        return e && Math.abs(e.offsetLeft + e.offsetWidth / 2 - milieu) < b.width * 0.31;
+      }).map(p => p.id));
+    }
+  };
+  const repos = id => {
+    const el = elementPiece(id),
+      c = el.querySelector('.portant-cadre'),
+      r = el.getBoundingClientRect();
+    return {
+      left: r.left + r.width / 2 - c.offsetWidth / 2,
+      top: r.top + c.offsetTop,
+      width: c.offsetWidth,
+      height: c.offsetHeight
+    };
+  };
+
+  // ---- ouverture : la pièce part d'où elle est, le crochet arrive sur la barre ----
+  const ouvrir = p => {
+    if (ficheId || occupe.current) return;
+    prechargerTout();
+    depart.current = elementPiece(p.id).querySelector('.portant-cadre').getBoundingClientRect();
+    occupe.current = true;
+    setVue('dos');
+    setVoulue(null);
+    setDetails(false);
+    setFicheId(p.id);
+    setEtape('pose');
+    setActifId(null);
+  };
+  React.useLayoutEffect(() => {
+    if (etape !== 'pose') return;
+    const vol = volRef.current;
+    portantPlace(vol, depart.current);
+    const cible = calerFiche();
+    caleFlou(ficheId, cible);
+    void vol.offsetWidth;
+    vol.classList.remove('sans-transition');
+    document.body.style.overflow = 'hidden';
+    window.history.pushState({
+      modal: 'portant'
+    }, '');
+    histoire.current = true;
+    requestAnimationFrame(() => {
+      setEtape('vol');
+      portantPlace(vol, cible);
+    });
+    setTimeout(() => {
+      occupe.current = false;
+      setEtape(e => e === 'vol' ? 'ouverte' : e);
+      if (fermerRef.current) fermerRef.current.focus({
+        preventScroll: true
+      });
+    }, 300);
+  }, [etape]);
+
+  // versPanier : le panier s'ouvre tout de suite, la pièce s'efface au lieu de traverser le panneau.
+  const fermer = (depuisHistorique, versPanier) => {
+    if (!ficheId || occupe.current) return;
+    occupe.current = true;
+    const id = ficheId,
+      vol = volRef.current;
+    setEtape('retour');
+    setVue('dos');
+    setDetails(false);
+    if (versPanier) vol.classList.add('efface');else {
+      vol.classList.remove('sans-transition');
+      portantPlace(vol, repos(id));
+    }
+    if (depuisHistorique !== true && histoire.current) {
+      histoire.current = false;
+      window.history.back();
+    }
+    histoire.current = false;
+    setTimeout(() => {
+      document.body.style.overflow = '';
+      setFicheId(null);
+      setEtape(null);
+      setCaches([]);
+      occupe.current = false;
+      const el = elementPiece(id);
+      if (el) el.focus({
+        preventScroll: true
+      });
+      activeDepuisDefile();
+    }, versPanier ? 260 : 740);
+  };
+  const voisine = async sens => {
+    if (idxFiche < 0 || occupe.current || N < 2) return;
+    occupe.current = true;
+    const vol = volRef.current,
+      suivante = pieces[(idxFiche + sens + N) % N];
+    await vol.animate([{
+      opacity: 1,
+      transform: 'translateX(0)'
+    }, {
+      opacity: 0,
+      transform: `translateX(${-sens * 46}px)`
+    }], {
+      duration: 170,
+      easing: 'ease-in',
+      fill: 'forwards'
+    }).finished;
+    setFicheId(suivante.id);
+    setVue('dos');
+    setVoulue(null);
+    setDetails(false);
+    if (portantMobile()) centrer(suivante.id);
+    caleFlou(suivante.id, calerFiche());
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await vol.animate([{
+      opacity: 0,
+      transform: `translateX(${sens * 46}px)`
+    }, {
+      opacity: 1,
+      transform: 'translateX(0)'
+    }], {
+      duration: 260,
+      easing: 'ease-out',
+      fill: 'forwards'
+    }).finished;
+    vol.getAnimations().forEach(a => a.cancel());
+    occupe.current = false;
+  };
+  const tourner = async vers => {
+    if (!piece || occupe.current || vers === vue) return;
+    occupe.current = true;
+    const vol = volRef.current,
+      base = 'perspective(1200px) rotateY';
+    await vol.animate([{
+      transform: `${base}(0deg)`
+    }, {
+      transform: `${base}(90deg)`
+    }], {
+      duration: 200,
+      easing: 'ease-in'
+    }).finished;
+    vol.style.transform = `${base}(-90deg)`;
+    setVue(vers);
+    await vol.animate([{
+      transform: `${base}(-90deg)`
+    }, {
+      transform: `${base}(0deg)`
+    }], {
+      duration: 260,
+      easing: 'ease-out'
+    }).finished;
+    vol.style.transform = '';
+    occupe.current = false;
+  };
+
+  // Échap ferme le dessus d'abord (livraison et retours, puis les détails, puis la fiche) ; le retour du navigateur ferme la fiche.
+  useEffect(() => {
+    if (!ficheId) return;
+    const onKey = e => {
+      if (aideRef.current) return;
+      if (e.key === 'Escape') {
+        if (details) setDetails(false);else fermer();
+      } else if (e.key === 'ArrowLeft') voisine(-1);else if (e.key === 'ArrowRight') voisine(1);
+    };
+    const onPop = () => {
+      histoire.current = false;
+      fermer(true);
+    };
+    const onResize = () => {
+      if (!volRef.current || occupe.current) return;
+      volRef.current.classList.add('sans-transition');
+      const b = calerFiche();
+      portantPlace(volRef.current, b);
+      caleFlou(ficheId, b);
+      void volRef.current.offsetWidth;
+      volRef.current.classList.remove('sans-transition');
+    };
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('resize', onResize);
+    };
+  });
+
+  // Une pièce épuisée pendant que sa fiche est ouverte quitte la boutique : la fiche se referme proprement.
+  useEffect(() => {
+    if (ficheId && idxFiche < 0) {
+      document.body.style.overflow = '';
+      setFicheId(null);
+      setEtape(null);
+      occupe.current = false;
+    }
+  }, [ficheId, idxFiche]);
+  useEffect(() => () => {
+    document.body.style.overflow = '';
+  }, []);
+
+  // ---- sur téléphone, glisser sur la fiche passe à la pièce voisine ----
+  const debutGlisse = e => {
+    const t = e.touches[0];
+    glisse.current = {
+      x: t.clientX,
+      y: t.clientY
+    };
+  };
+  const finGlisse = e => {
+    if (!glisse.current) return;
+    const t = e.changedTouches[0],
+      dx = t.clientX - glisse.current.x,
+      dy = t.clientY - glisse.current.y;
+    glisse.current = null;
+    if (Math.abs(dx) > 56 && Math.abs(dy) < 44) voisine(dx < 0 ? 1 : -1);
+  };
+  const mobile = portantMobile();
+  const etiquette = p => p.etiquette || (p.cat === 'SWEATS' ? 'HOODIES' : p.cat);
+  const prixDe = p => p.sizes[0] ? p.sizes[0].prix : '';
+  const taille = piece ? piece.sizes.length === 1 ? tailleChoisie(piece, null) : piece.sizes.some(s => s.label === voulue && s.dispo) ? voulue : null : null;
+  const etat = piece ? etatAchat(piece, dropStatus, tailleChoisie(piece, null)) : null;
+  const peutAcheter = etat === 'ouvert' && !!taille;
+  const texteBouton = !piece ? '' : etat === 'ouvert' ? taille ? 'Ajouter au panier' : 'Choisir une taille' : {
+    chargement: 'Chargement…',
+    indisponible: 'Indisponible'
+  }[etat] || 'Bientôt disponible';
+  const ajouter = () => {
+    if (peutAcheter) {
+      onAddToCart(piece, taille);
+      fermer(false, true);
+    }
+  };
+  const classeRacine = ['portant-fiche', (etape === 'vol' || etape === 'ouverte') && 'on', etape === 'ouverte' && 'pret', etape === 'retour' && 'retour'].filter(Boolean).join(' ');
+  return /*#__PURE__*/React.createElement("div", {
+    className: "portant",
+    style: {
+      '--n': N
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "portant-defile",
+    ref: defileRef,
+    onScroll: auDefilement
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "portant-rail",
+    ref: railRef,
+    onPointerLeave: e => {
+      if (e.pointerType === 'mouse' && !ficheId && !portantMobile()) setActifId(null);
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "portant-barre"
+  }), pieces.map((p, i) => {
+    const d = i - idxActif;
+    const k = mobile || idxActif < 0 || d === 0 ? 0 : Math.sign(d) * 0.3 / Math.pow(Math.abs(d), 0.8);
+    return /*#__PURE__*/React.createElement("button", {
+      key: p.id,
+      type: "button",
+      "data-piece": p.id,
+      "data-achat": etatAchat(p, dropStatus, tailleChoisie(p, null)),
+      className: `portant-piece${p.id === actifId ? ' actif' : ''}${p.id === ficheId ? ' ouverte' : ''}`,
+      style: {
+        '--i': i
+      },
+      "aria-label": `${p.name}, ${etiquette(p).toLowerCase()}${prixDe(p) ? ', ' + prixDe(p) : ''}. Ouvrir la fiche`,
+      onClick: () => ouvrir(p),
+      onPointerEnter: e => {
+        if (e.pointerType === 'mouse' && !portantMobile() && !ficheId) {
+          prechargerTout();
+          setActifId(p.id);
+        }
+      },
+      onFocus: () => {
+        if (!portantMobile() && !ficheId) setActifId(p.id);
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "portant-cadre",
+      style: {
+        '--k': k.toFixed(3)
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "portant-balance"
+    }, /*#__PURE__*/React.createElement("img", {
+      src: p.portant.dos,
+      alt: "",
+      width: "840",
+      height: "950",
+      loading: "lazy",
+      decoding: "async",
+      draggable: "false"
+    }))));
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: `portant-legende font-typewriter${actif ? ' on' : ''}`,
+    style: actif && !mobile ? {
+      '--a': idxActif
+    } : undefined
+  }, actif ? /*#__PURE__*/React.createElement(React.Fragment, null, actif.name, prixDe(actif) ? ` · ${prixDe(actif)}` : '', mobile && /*#__PURE__*/React.createElement("span", {
+    className: "portant-astuce"
+  }, "Touche la pi\xE8ce pour l'ouvrir")) : /*#__PURE__*/React.createElement("span", {
+    className: "portant-astuce"
+  }, "Passe sur une pi\xE8ce, clique pour l'ouvrir")), ficheId && piece && ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+    className: classeRacine,
+    ref: racineRef,
+    style: {
+      '--n': N
+    },
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-label": piece.name,
+    onTouchStart: debutGlisse,
+    onTouchEnd: finGlisse
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "portant-fond",
+    onClick: () => fermer()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "portant-flou",
+    ref: flouRef,
+    "aria-hidden": "true"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "portant-barre"
+  }), pieces.map((p, i) => /*#__PURE__*/React.createElement("span", {
+    key: p.id,
+    className: `portant-piece${p.id === ficheId || caches.includes(p.id) ? ' cache' : ''}`,
+    style: {
+      '--i': i
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "portant-cadre"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: p.portant.dos,
+    alt: ""
+  })))))), /*#__PURE__*/React.createElement("div", {
+    className: `portant-vol sans-transition${vue === 'face' ? ' montre-face' : ''}`,
+    ref: volRef
+  }, /*#__PURE__*/React.createElement("img", {
+    className: "dos",
+    src: piece.portant.dos,
+    alt: `${piece.name}, dos`
+  }), /*#__PURE__*/React.createElement("img", {
+    className: "face",
+    src: piece.portant.face,
+    alt: `${piece.name}, face`
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "portant-ui"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "portant-haut font-typewriter"
+  }, /*#__PURE__*/React.createElement("span", null, String(idxFiche + 1).padStart(2, '0'), " / ", String(N).padStart(2, '0')), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    ref: fermerRef,
+    onClick: () => fermer()
+  }, "Fermer")), N > 1 && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    ref: prevRef,
+    className: "portant-fleche",
+    "aria-label": "Pi\xE8ce pr\xE9c\xE9dente",
+    onClick: () => voisine(-1)
+  }, "\u2190"), N > 1 && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    ref: nextRef,
+    className: "portant-fleche",
+    "aria-label": "Pi\xE8ce suivante",
+    onClick: () => voisine(1)
+  }, "\u2192"), /*#__PURE__*/React.createElement("div", {
+    className: "portant-info",
+    ref: infoRef
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "portant-nom font-typewriter"
+  }, piece.name), /*#__PURE__*/React.createElement("p", {
+    className: "portant-prix font-typewriter"
+  }, etiquette(piece), piece.stockEtat === 'ok' ? ' · ' : '', piece.stockEtat === 'ok' && /*#__PURE__*/React.createElement(PrixPiece, {
+    p: piece,
+    taille: taille
+  })), /*#__PURE__*/React.createElement("p", {
+    className: "portant-desc font-serif"
+  }, piece.desc), /*#__PURE__*/React.createElement("div", {
+    className: "portant-vues"
+  }, [['dos', 'Dos'], ['face', 'Face']].map(([v, t]) => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    type: "button",
+    "data-vue": v,
+    className: `font-typewriter${vue === v ? ' on' : ''}`,
+    "aria-pressed": vue === v,
+    onClick: () => tourner(v)
+  }, t))), piece.stockEtat === 'chargement' && /*#__PURE__*/React.createElement("div", {
+    className: "portant-tailles",
+    "aria-hidden": "true"
+  }, [0, 1, 2, 3, 4, 5].map(i => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    className: "vide"
+  }))), piece.sizes.length > 1 && /*#__PURE__*/React.createElement("div", {
+    className: "portant-tailles"
+  }, piece.sizes.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.label,
+    type: "button",
+    disabled: !s.dispo,
+    className: `font-typewriter${taille === s.label ? ' on' : ''}`,
+    "aria-label": s.dispo ? s.label : `${s.label}, épuisée`,
+    title: s.dispo ? undefined : 'Épuisée',
+    "aria-pressed": taille === s.label,
+    onClick: () => setVoulue(s.label)
+  }, s.label))), piece.sizes.length === 1 && /*#__PURE__*/React.createElement("p", {
+    className: "portant-unique font-typewriter"
+  }, piece.sizes[0].label), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "portant-achat font-typewriter",
+    disabled: !peutAcheter,
+    onClick: ajouter
+  }, texteBouton, peutAcheter && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 ", /*#__PURE__*/React.createElement(PrixPiece, {
+    p: piece,
+    taille: taille
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "portant-liens font-typewriter"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setDetails(d => !d),
+    "aria-expanded": details
+  }, "Composition et entretien"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onOpenAide
+  }, "Livraison et retours"))), /*#__PURE__*/React.createElement("div", {
+    className: `portant-details${details ? ' on' : ''}`,
+    "aria-hidden": !details
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "portant-details-fermer",
+    "aria-label": "Fermer les d\xE9tails",
+    tabIndex: details ? 0 : -1,
+    onClick: () => setDetails(false)
+  }, "\u2715"), /*#__PURE__*/React.createElement("p", {
+    className: "font-serif portant-details-desc"
+  }, piece.desc), piece.sizeNote && piece.sizeNote.split(' · ').map((l, i) => /*#__PURE__*/React.createElement("p", {
+    key: i,
+    className: "font-typewriter portant-details-ligne"
+  }, l)), piece.color && /*#__PURE__*/React.createElement("p", {
+    className: "font-typewriter portant-details-couleur"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      backgroundColor: piece.color.hex
+    }
+  }), piece.color.label)))), document.body));
+}
+
+// ============================================================
 // BOUTIQUE SHOWCASE — sticky scroll (une slide par catégorie)
 // ============================================================
 function BoutiqueShowcase({
@@ -2797,6 +3384,10 @@ function TypiqueSite() {
     },
     desc: "Un chichi frégi à la main, le port devant soi : un dimanche à L'Estaque.",
     photos: [ESTAQUE_AVANT, ESTAQUE_ARRIERE],
+    portant: {
+      dos: PORTANT_ESTAQUE_DOS,
+      face: PORTANT_ESTAQUE_FACE
+    },
     bg: '#E8E3DB'
   }, {
     id: 'ts-pinede',
@@ -2809,6 +3400,10 @@ function TypiqueSite() {
     },
     desc: "Vert olive et kaki clair, l'odeur de résine et l'ombre qu'on cherche à midi.",
     photos: [PINEDE_AVANT, PINEDE_ARRIERE],
+    portant: {
+      dos: PORTANT_PINEDE_DOS,
+      face: PORTANT_PINEDE_FACE
+    },
     bg: '#E8E3DB'
   }, {
     id: 'ts-ferret',
@@ -2875,6 +3470,10 @@ function TypiqueSite() {
     },
     desc: "Bordeaux comme le ciel quand le soleil tombe, la dernière lumière de la journée dans le dos.",
     photos: [SOLEILCOUCHANT_AVANT, SOLEILCOUCHANT_ARRIERE],
+    portant: {
+      dos: PORTANT_SOLEILCOUCHANT_DOS,
+      face: PORTANT_SOLEILCOUCHANT_FACE
+    },
     bg: '#E8E3DB'
   }, {
     id: 'ts-petitmatin',
@@ -2887,6 +3486,10 @@ function TypiqueSite() {
     },
     desc: "Blanc comme la première lumière, avant que la plage se remplisse, avec un soleil jaune qui se lève dans le dos.",
     photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE],
+    portant: {
+      dos: PORTANT_PETITMATIN_DOS,
+      face: PORTANT_PETITMATIN_FACE
+    },
     bg: '#E8E3DB'
   }, {
     id: 'sw-pleincagnard',
@@ -2900,6 +3503,10 @@ function TypiqueSite() {
     },
     desc: "Plein cagnard : le soleil tape fort, l'ombre devient une affaire sérieuse et personne ne bouge.",
     photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE],
+    portant: {
+      dos: PORTANT_PLEINCAGNARD_DOS,
+      face: PORTANT_PLEINCAGNARD_FACE
+    },
     bg: '#E8E3DB'
   }, {
     id: 'sw-minot',
@@ -2912,6 +3519,10 @@ function TypiqueSite() {
     },
     desc: "Minot, le gamin en marseillais, devenu grand mais toujours enfant du Sud.",
     photos: [MINOT_AVANT, MINOT_ARRIERE],
+    portant: {
+      dos: PORTANT_MINOT_DOS,
+      face: PORTANT_MINOT_FACE
+    },
     bg: '#E8E3DB'
   }, {
     id: 'sw-corpssale',
@@ -2924,6 +3535,10 @@ function TypiqueSite() {
     },
     desc: "Le sel sur la peau, le soleil dans le cœur, écrits en corail et en pêche sur fond mocha.",
     photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE],
+    portant: {
+      dos: PORTANT_CORPSSALE_DOS,
+      face: PORTANT_CORPSSALE_FACE
+    },
     bg: '#E8E3DB'
   }, {
     id: 'sw-mistral',
@@ -3590,7 +4205,13 @@ function TypiqueSite() {
       color: categorieActive === cat ? '#F4F1EC' : 'rgba(15,40,101,0.55)',
       cursor: 'pointer'
     }
-  }, categoryLabels[cat] || cat)))), /*#__PURE__*/React.createElement("div", {
+  }, categoryLabels[cat] || cat)))), categorieActive === 'NOUVEAU' && filteredProducts.length > 0 && filteredProducts.every(p => p.portant) ? /*#__PURE__*/React.createElement(Portant, {
+    pieces: filteredProducts,
+    dropStatus: dropStatus,
+    onAddToCart: addToCart,
+    onOpenAide: () => setLegalModal('livraison'),
+    aideOuverte: !!legalModal
+  }) : /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8"
   }, filteredProducts.map((p, i) => /*#__PURE__*/React.createElement(Reveal, {
     key: p.id,

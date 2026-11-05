@@ -143,8 +143,8 @@ ETAT = """JSON.stringify({
   sub: (document.getElementById('sub')||{}).textContent, attenteVisible: document.getElementById('attente').offsetParent !== null,
   source: window.HORLOGE && HORLOGE.source, marque: window.__marque, overflow: document.body.style.overflow,
   boutique: document.getElementById('root').children.length > 0,
-  achat: [...document.querySelectorAll('#root button')].filter(b => /\\+ Panier|Ajouter au panier/.test(b.textContent)).length,
-  bientot: [...document.querySelectorAll('#root button')].filter(b => /^Bientôt/.test(b.textContent)).length,
+  achat: [...document.querySelectorAll('#root button')].filter(b => /\\+ Panier|Ajouter au panier/.test(b.textContent) || b.dataset.achat === 'ouvert').length,
+  bientot: [...document.querySelectorAll('#root button')].filter(b => /^Bientôt/.test(b.textContent) || b.dataset.achat === 'bientot').length,
   texteBoutique: (document.getElementById('root').innerText || '').slice(0, 4000),
   ressources: performance.getEntriesByType('resource').map(r => r.name.replace(location.origin, '').split('?')[0])
 })"""
@@ -317,7 +317,10 @@ def serveur_contre_appareil():
 def simulation_local_seulement():
     """?simuler= est ignoré hors de l'ordinateur local : en ligne, il permettrait d'acheter avant l'heure."""
     import socket
-    ip = socket.gethostbyname(socket.gethostname())
+    # La vraie adresse du Mac sur son réseau (gethostbyname peut répondre 127.0.0.1, qui est locale : le test n'aurait plus de sens).
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sonde:
+        sonde.connect(("192.0.2.1", 9))  # aucun paquet n'est envoyé
+        ip = sonde.getsockname()[0]
     reglage_serveur(decalage=0, api="ok")
     aller("/?simuler=" + paris(OUVERTURE, 3600), hote=ip)
     time.sleep(2.5)

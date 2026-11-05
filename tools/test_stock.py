@@ -160,10 +160,12 @@ def recharger(scenario_js="{}", variante=None):
     time.sleep(0.4)
 
 
-def onglet(nom):
+def onglet(nom, attend_shopify=True):
     assert attendre(f"[...document.querySelectorAll('button')].some(b => b.textContent.trim().toUpperCase() === '{nom}')", 20), f"onglet {nom} introuvable"
     js(f"[...document.querySelectorAll('button')].find(b => b.textContent.trim().toUpperCase() === '{nom}').click()")
     time.sleep(0.6)
+    if attend_shopify:
+        attendre("[...document.querySelectorAll('article.product-card')].every(a => !a.textContent.includes('…'))", 15)
 
 
 def onglets():
@@ -182,6 +184,29 @@ def clic_taille(nom, taille):
     js(f"""(() => {{ const a = [...document.querySelectorAll('article.product-card')].find(a => a.querySelector('h3').textContent.trim() === {json.dumps(nom)});
       const b = [...a.querySelectorAll('.flex-wrap button')].find(b => b.textContent.trim() === {json.dumps(taille)}); b.click(); }})()""")
     time.sleep(0.3)
+
+
+def portant():
+    return json.loads(js("""JSON.stringify([...document.querySelectorAll('.portant-rail .portant-piece')].map(b => ({ id: b.dataset.piece, achat: b.dataset.achat, label: b.getAttribute('aria-label') })))"""))
+
+
+def piece_portant(nom):
+    return next((x for x in portant() if x["label"].startswith(nom + ",")), None)
+
+
+def fiche_portant(ident):
+    js(f"""document.querySelector('.portant-rail [data-piece="{ident}"]').click()""")
+    attendre("!!document.querySelector('.portant-fiche.pret')", 6)
+    time.sleep(.3)
+    return json.loads(js("""JSON.stringify({ nom: document.querySelector('.portant-nom').textContent, prix: document.querySelector('.portant-prix').textContent,
+      tailles: [...document.querySelectorAll('.portant-tailles button')].map(b => b.textContent),
+      epuisees: [...document.querySelectorAll('.portant-tailles button:disabled')].map(b => b.textContent),
+      bouton: document.querySelector('.portant-achat').textContent.trim(), inactif: document.querySelector('.portant-achat').disabled })"""))
+
+
+def fermer_fiche():
+    js("""[...document.querySelectorAll('.portant-haut button')].find(b => b.textContent === 'Fermer').click()""")
+    attendre("!document.querySelector('.portant-fiche')", 6)
 
 
 def clic_bouton(nom, texte):
@@ -226,10 +251,10 @@ try:
     print("\n1. Prix et tailles comme dans Shopify (réponse réelle, rien de retouché)")
     shop = api_shopify()
     recharger("{}")
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
-    nouvelle = cartes()
-    verifie(len(nouvelle) == 7 and all(x["bouton"] == "Bientôt" and not x["prix"] and not x["tailles"] for x in nouvelle),
-            "Nouvelle collection : 7 pièces en « Bientôt », sans prix ni tailles (pas d'identifiant Shopify)")
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
+    nouvelle = portant()
+    verifie(len(nouvelle) == 7 and all(x["achat"] == "bientot" and "€" not in x["label"] for x in nouvelle),
+            "Nouvelle collection (portant) : 7 pièces en attente, sans prix (pas d'identifiant Shopify)")
     for nom_onglet, tout, pieces in (
             ("T-SHIRTS", ["L'Estaque", "La Pinède", "Le Ferret", "L'Entre Deux", "Sable chaud"], ["Le Ferret", "L'Entre Deux", "Sable chaud"]),
             ("HOODIES", ["Plein cagnard", "Le Minot du Sud", "Corps Salé Coeur Solaire", "Le Mistral", "La Tchanquée", "Le Surfer"], ["Le Mistral", "La Tchanquée", "Le Surfer"]),
@@ -250,7 +275,7 @@ try:
     # ---------------------------------------------------------------- 2. Taille épuisée
     print("\n2. Une taille épuisée (Le Ferret XS) : grisée, impossible à choisir, jamais proposée par défaut")
     recharger(modif_js(par_titre("Le Ferret", "n.variants.nodes.find(v => v.title === 'XS').availableForSale = false;")))
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
     onglet("T-SHIRTS")
     x = carte("Le Ferret")
     xs = next(t for t in x["tailles"] if t["t"] == "XS")
@@ -268,16 +293,16 @@ try:
     # ---------------------------------------------------------------- 3. Pièce / catégorie épuisée
     print("\n3. Une pièce sans aucun stock est retirée ; une catégorie vide disparaît")
     recharger(epuiser("Le Mistral"))
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
     onglet("HOODIES")
     verifie("Le Mistral" not in [x["nom"] for x in cartes()] and "La Tchanquée" in [x["nom"] for x in cartes()] and "Le Surfer" in [x["nom"] for x in cartes()],
             f"HOODIES sans Le Mistral, les autres restent : {[x['nom'] for x in cartes()]}")
     recharger(epuiser("Le Pilat", "La Garrigue"))
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
     t = onglets()
     verifie("ACCESSOIRES" not in t and "T-SHIRTS" in t and "HOODIES" in t, f"onglet ACCESSOIRES disparu quand ses 2 pièces sont épuisées : {t}")
     recharger("{}", variante="inconnue")
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
     attendre("document.querySelector('#pieces') && !document.body.innerText.toLowerCase().includes('prix et tailles non chargés')", 10)
     onglet("ACCESSOIRES")
     verifie([x["nom"] for x in cartes()] == ["Le Pilat"], f"ancienne pièce inconnue de Shopify retirée : {[x['nom'] for x in cartes()]}")
@@ -285,27 +310,46 @@ try:
     # ---------------------------------------------------------------- 4. Nouvelle collection reliée à Shopify
     print("\n4. Nouvelle collection : pièce reliée à Shopify, pièce inconnue de Shopify")
     recharger("{}", variante="essai")
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
-    attendre("[...document.querySelectorAll('article.product-card')].some(a => a.textContent.includes('+ Panier'))", 15)
-    x, y = carte("L'Estaque"), carte("La Pinède")
-    verifie(x and x["prix"] == "44 €" and x["bouton"] == "+ Panier" and len(x["tailles"]) == 6, f"L'Estaque (identifiant du Ferret) : {x['prix']}, {len(x['tailles'])} tailles, {x['bouton']}")
-    verifie(y and y["bouton"] == "Bientôt" and not y["prix"] and not y["tailles"], "La Pinède (identifiant inconnu de Shopify) : « Bientôt », sans prix")
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
+    attendre("document.querySelectorAll('.portant-piece[data-achat=\"ouvert\"]').length > 0", 15)
+    x, y = piece_portant("L'Estaque"), piece_portant("La Pinède")
+    verifie(x and x["achat"] == "ouvert" and "44" in x["label"], f"L'Estaque (identifiant du Ferret) sur le portant : {x}")
+    verifie(y and y["achat"] == "bientot" and "€" not in y["label"], f"La Pinède (identifiant inconnu de Shopify) : en attente, sans prix : {y}")
+    f = fiche_portant("ts-estaque")
+    verifie(f["nom"] == "L'Estaque" and len(f["tailles"]) == 6 and "44" in f["prix"], f"fiche de L'Estaque : 6 tailles, 44 € : {f['tailles']}, {f['prix']}")
+    verifie(f["bouton"] == "Choisir une taille" and f["inactif"], f"aucune taille d'avance, bouton inactif : {f['bouton']}")
+    fermer_fiche()
+    f = fiche_portant("ts-pinede")
+    verifie(f["bouton"] == "Bientôt disponible" and f["inactif"] and not f["tailles"], f"fiche de La Pinède : {f['bouton']}, sans taille")
+    fermer_fiche()
+    # Une taille épuisée dans la fiche du portant : barrée et impossible à choisir.
+    recharger(modif_js(par_titre("Le Ferret", "for (const v of n.variants.nodes) if (v.title === 'XS') { v.availableForSale = false; v.quantityAvailable = 0; }")), variante="essai")
+    attendre("document.querySelectorAll('.portant-piece[data-achat=\"ouvert\"]').length > 0", 30)
+    f = fiche_portant("ts-estaque")
+    verifie(f["epuisees"] == ["XS"], f"fiche : XS épuisée, barrée et inactive : {f['epuisees']}")
+    js("""[...document.querySelectorAll('.portant-tailles button')].find(b => b.textContent === 'XS').click()""")
+    time.sleep(.3)
+    verifie(js("document.querySelector('.portant-achat').disabled"), "fiche : toucher une taille épuisée n'active pas le bouton")
+    js("""[...document.querySelectorAll('.portant-tailles button')].find(b => b.textContent === 'S').click()""")
+    time.sleep(.3)
+    verifie(not js("document.querySelector('.portant-achat').disabled"), "fiche : une taille disponible active le bouton")
+    fermer_fiche()
     # Le site comme il sera : la nouvelle collection reliée à Shopify telle que réglée dans reglage-drop.ini (réponse réelle).
     reliees = [build.sans_accent(nom) for _, nom, sid in build.lire_reglage(build.REGLAGE)["nouvelles"] if sid]
     if reliees:
         recharger("{}", variante="reel")
-        attendre("document.querySelectorAll('article.product-card').length > 0", 30)
-        attendre("[...document.querySelectorAll('article.product-card')].some(a => a.textContent.includes('+ Panier'))", 15)
-        reel = {build.sans_accent(z["nom"]): z for z in cartes()}
-        verifie(all(reel.get(n) and reel[n]["bouton"] == "+ Panier" and reel[n]["prix"] and reel[n]["tailles"] for n in reliees),
-                f"réglage du jour : les {len(reliees)} pièces reliées à Shopify ont un prix, des tailles et « + Panier »")
+        attendre("document.querySelectorAll('.portant-piece').length > 0", 30)
+        attendre("document.querySelectorAll('.portant-piece[data-achat=\"ouvert\"]').length > 0", 15)
+        reel = portant()
+        verifie(len(reel) == len(reliees) and all(z["achat"] == "ouvert" and "€" in z["label"] for z in reel),
+                f"réglage du jour : les {len(reliees)} pièces du portant sont achetables, avec leur prix")
     else:
         print("  (aucune pièce de la nouvelle collection n'est reliée dans reglage-drop.ini : rien à vérifier ici)")
 
     # ---------------------------------------------------------------- 5. Prix retouchés
     print("\n5. Le prix suit Shopify, taille par taille (44 → 45,5 en XS et 46 en M)")
     recharger(modif_js(par_titre("Le Ferret", "for (const v of n.variants.nodes) { if (v.title === 'XS') v.price.amount = '45.5'; if (v.title === 'M') v.price.amount = '46.0'; }")))
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
     onglet("T-SHIRTS")
     clic_taille("Le Ferret", "XS")
     verifie(carte("Le Ferret")["prix"] == "45,50 €", f"XS : {carte('Le Ferret')['prix']}")
@@ -320,7 +364,7 @@ try:
     # ---------------------------------------------------------------- 6. Taille partie pendant que le client choisit
     print("\n6. Le Ferret en M au panier, puis M épuisée avant le clic sur Commander : pas de paiement, message")
     recharger("{}")
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
     onglet("T-SHIRTS")
     clic_taille("Le Ferret", "M")
     clic_bouton("Le Ferret", "+ Panier")
@@ -356,9 +400,9 @@ try:
     print("\n8. Shopify lent (3 s) : la boutique s'affiche tout de suite, les prix arrivent ensuite")
     recharger("{ delai: 3000 }")
     t0 = time.time()
-    attendre("document.querySelectorAll('article.product-card').length > 0", 30)
+    attendre("document.querySelectorAll('article.product-card, .portant-piece').length > 0", 30)
     t_cartes = time.time() - t0
-    onglet("T-SHIRTS")
+    onglet("T-SHIRTS", attend_shopify=False)
     cs = [x for x in cartes() if x["nom"] in ("Le Ferret", "L'Entre Deux", "Sable chaud")]
     verifie(len(cs) == 3 and all(x["prix"] in ("", None) and x["bouton"] == "…" and x["squelette"] for x in cs), f"pendant l'attente : cartes visibles, bouton « … », emplacements vides, aucun prix ({t_cartes:.1f} s pour afficher les cartes)")
     verifie(attendre("[...document.querySelectorAll('article.product-card')].some(a => a.textContent.includes('+ Panier'))", 15) is True, "puis les prix et les tailles arrivent")
