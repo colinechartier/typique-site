@@ -14,8 +14,8 @@ var GARRIGUE_P2='/photos/garrigue_p2.webp?v=36d1541475';
 var GARRIGUE_P3='/photos/garrigue_p3.webp?v=2a7800495d';
 var HOODIES_SHOWCASE='/photos/hoodies_showcase.webp?v=be0b971416';
 var MANCHES_LONGUES_SHOWCASE='/photos/manches_longues_showcase.webp?v=c3901814d4';
-var MINOT_ARRIERE='/photos/minot_arriere.webp?v=6ecf116b6e';
-var MINOT_AVANT='/photos/minot_avant.webp?v=1b28cb11fc';
+var MINOT_ARRIERE='/photos/minot_arriere.webp?v=2140e894df';
+var MINOT_AVANT='/photos/minot_avant.webp?v=ab6f8d3bce';
 var MISTRAL_ARRIERE='/photos/mistral_arriere.webp?v=d54dc4c91a';
 var MISTRAL_AVANT='/photos/mistral_avant.webp?v=328ee55e37';
 var PETITMATIN_ARRIERE='/photos/petitmatin_arriere.webp?v=ba5523e580';
@@ -23,8 +23,8 @@ var PETITMATIN_AVANT='/photos/petitmatin_avant.webp?v=37514bd25e';
 var PILAT_P1='/photos/pilat_p1.webp?v=91fdedc455';
 var PINEDE_ARRIERE='/photos/pinede_arriere.webp?v=4547dce6b5';
 var PINEDE_AVANT='/photos/pinede_avant.webp?v=7275410c7c';
-var PLEINCAGNARD_ARRIERE='/photos/pleincagnard_arriere.webp?v=03ba1c2632';
-var PLEINCAGNARD_AVANT='/photos/pleincagnard_avant.webp?v=4ceda5d184';
+var PLEINCAGNARD_ARRIERE='/photos/pleincagnard_arriere.webp?v=8bc7ffdd03';
+var PLEINCAGNARD_AVANT='/photos/pleincagnard_avant.webp?v=050779d86d';
 var SABLE_ARRIERE='/photos/sable_arriere.webp?v=bccefefd4e';
 var SABLE_AVANT='/photos/sable_avant.webp?v=710f312534';
 var SOLEILCOUCHANT_ARRIERE='/photos/soleilcouchant_arriere.webp?v=6afa0c0092';
@@ -1987,7 +1987,7 @@ function ProductCard({
     style: {
       opacity: 0.5
     }
-  }, p.cat === 'SWEATS' ? 'HOODIES' : p.cat), /*#__PURE__*/React.createElement("h3", {
+  }, p.etiquette || (p.cat === 'SWEATS' ? 'HOODIES' : p.cat)), /*#__PURE__*/React.createElement("h3", {
     className: "font-typewriter text-lg mb-2"
   }, p.name), /*#__PURE__*/React.createElement("p", {
     className: "font-serif text-sm leading-relaxed mb-3 flex-1",
@@ -2265,7 +2265,7 @@ function ProductModal({
     style: {
       opacity: 0.45
     }
-  }, p.cat === 'SWEATS' ? 'HOODIES' : p.cat), /*#__PURE__*/React.createElement("h2", {
+  }, p.etiquette || (p.cat === 'SWEATS' ? 'HOODIES' : p.cat)), /*#__PURE__*/React.createElement("h2", {
     className: "font-typewriter mb-3",
     style: {
       fontSize: '1.6rem',
@@ -2891,6 +2891,7 @@ function TypiqueSite() {
   }, {
     id: 'sw-pleincagnard',
     cat: 'SWEATS',
+    etiquette: 'SWEATS',
     name: 'Plein cagnard',
     sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Laver à 30° à l\'envers',
     color: {

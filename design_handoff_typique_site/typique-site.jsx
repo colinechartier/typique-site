@@ -1294,7 +1294,7 @@ function ProductCard({ product: p, onAddToCart, dropStatus, onOpenDetail }) {
 
       {/* INFOS */}
       <div className="p-5 flex flex-col flex-1" style={{ color: '#0F2865' }}>
-        <p className="font-serif-fine italic text-xs uppercase tracking-[0.3em] mb-1.5" style={{ opacity: 0.5 }}>{p.cat === 'SWEATS' ? 'HOODIES' : p.cat}</p>
+        <p className="font-serif-fine italic text-xs uppercase tracking-[0.3em] mb-1.5" style={{ opacity: 0.5 }}>{p.etiquette || (p.cat === 'SWEATS' ? 'HOODIES' : p.cat)}</p>
         <h3 className="font-typewriter text-lg mb-2">{p.name}</h3>
         <p className="font-serif text-sm leading-relaxed mb-3 flex-1" style={{ opacity: 0.72 }}>{p.desc}</p>
         <div className="mt-auto">
@@ -1428,7 +1428,7 @@ function ProductModal({ product: p, onClose, onAddToCart, dropStatus, onOpenAide
           {/* COLONNE DROITE — infos */}
           <div style={{ flex: 1, padding: '40px 36px 36px', overflowY: 'auto', color: '#0F2865', display: 'flex', flexDirection: 'column' }}
             className="modal-info-col">
-            <p className="font-serif-fine italic text-xs uppercase tracking-[0.3em] mb-2" style={{ opacity: 0.45 }}>{p.cat === 'SWEATS' ? 'HOODIES' : p.cat}</p>
+            <p className="font-serif-fine italic text-xs uppercase tracking-[0.3em] mb-2" style={{ opacity: 0.45 }}>{p.etiquette || (p.cat === 'SWEATS' ? 'HOODIES' : p.cat)}</p>
             <h2 className="font-typewriter mb-3" style={{ fontSize: '1.6rem', lineHeight: 1.15 }}>{p.name}</h2>
             <p className="font-serif leading-relaxed mb-6" style={{ opacity: 0.72, fontSize: '0.95rem' }}>{p.desc}</p>
 
@@ -1864,7 +1864,7 @@ function TypiqueSite() {
       photos: [PETITMATIN_AVANT, PETITMATIN_ARRIERE], bg: '#E8E3DB'
     },
     {
-      id: 'sw-pleincagnard', cat: 'SWEATS',
+      id: 'sw-pleincagnard', cat: 'SWEATS', etiquette: 'SWEATS',
       name: 'Plein cagnard',
       sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Laver à 30° à l\'envers',
       color: { hex: '#EDE8DF', label: 'Crème' },
