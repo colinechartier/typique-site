@@ -1066,7 +1066,7 @@ const AIDE_CONTENT = {
     sections: [
       {
         heading: 'Quelle taille choisir ?',
-        text: `Les pièces Typique sont coupées oversize. Pour les t-shirts du Drop 01 (Le Ferret, L'Entre Deux, Sable chaud), nous conseillons aux femmes de prendre une taille en dessous de leur taille habituelle.`
+        text: `Les pièces Typique sont coupées oversize. Les sweats du Drop 02 (Plein cagnard, Le Minot du Sud, Corps Salé Coeur Solaire) taillent un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle. Pour les t-shirts du Drop 01 (Le Ferret, L'Entre Deux, Sable chaud), nous conseillons aux femmes de prendre une taille en dessous de leur taille habituelle.`
       },
       {
         heading: 'Combien coûte la livraison ?',
@@ -2186,7 +2186,7 @@ function TypiqueSite() {
     {
       id: 'sw-pleincagnard', cat: 'SWEATS', etiquette: 'SWEATS',
       name: 'Plein cagnard',
-      sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Taille un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle · Laver à 30° à l\'envers',
       color: { hex: '#EDE8DF', label: 'Crème' },
       desc: "Plein cagnard : le soleil tape fort, l'ombre devient une affaire sérieuse et personne ne bouge.",
       photos: [PLEINCAGNARD_AVANT, PLEINCAGNARD_ARRIERE], portant: { dos: PORTANT_PLEINCAGNARD_DOS, face: PORTANT_PLEINCAGNARD_FACE }, bg: '#E8E3DB'
@@ -2194,7 +2194,7 @@ function TypiqueSite() {
     {
       id: 'sw-minot', cat: 'SWEATS',
       name: 'Le Minot du Sud',
-      sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Taille un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle · Laver à 30° à l\'envers',
       color: { hex: '#2F2F31', label: 'Anthracite' },
       desc: "Minot, le gamin en marseillais, devenu grand mais toujours enfant du Sud.",
       photos: [MINOT_AVANT, MINOT_ARRIERE], portant: { dos: PORTANT_MINOT_DOS, face: PORTANT_MINOT_FACE }, bg: '#E8E3DB'
@@ -2202,7 +2202,7 @@ function TypiqueSite() {
     {
       id: 'sw-corpssale', cat: 'SWEATS',
       name: 'Corps Salé Coeur Solaire',
-      sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+      sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Taille un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle · Laver à 30° à l\'envers',
       color: { hex: '#775855', label: 'Mocha' },
       desc: "Le sel sur la peau, le soleil dans le cœur, écrits en corail et en pêche sur fond mocha.",
       photos: [CORPSSALE_AVANT, CORPSSALE_ARRIERE], portant: { dos: PORTANT_CORPSSALE_DOS, face: PORTANT_CORPSSALE_FACE }, bg: '#E8E3DB'

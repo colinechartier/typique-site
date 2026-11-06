@@ -1593,7 +1593,7 @@ const AIDE_CONTENT = {
     title: 'Questions fréquentes',
     sections: [{
       heading: 'Quelle taille choisir ?',
-      text: `Les pièces Typique sont coupées oversize. Pour les t-shirts du Drop 01 (Le Ferret, L'Entre Deux, Sable chaud), nous conseillons aux femmes de prendre une taille en dessous de leur taille habituelle.`
+      text: `Les pièces Typique sont coupées oversize. Les sweats du Drop 02 (Plein cagnard, Le Minot du Sud, Corps Salé Coeur Solaire) taillent un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle. Pour les t-shirts du Drop 01 (Le Ferret, L'Entre Deux, Sable chaud), nous conseillons aux femmes de prendre une taille en dessous de leur taille habituelle.`
     }, {
       heading: 'Combien coûte la livraison ?',
       text: `Colissimo à domicile : ${FRAIS_COLISSIMO}, en France métropolitaine. Le retrait à Pélissanne est gratuit, et la livraison locale aussi, dans un rayon de 100 km.`
@@ -3496,7 +3496,7 @@ function TypiqueSite() {
     cat: 'SWEATS',
     etiquette: 'SWEATS',
     name: 'Plein cagnard',
-    sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+    sizeNote: '50 % coton recyclé, 50 % coton biologique, 400 g/m² · Coupe oversize · Taille un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle · Laver à 30° à l\'envers',
     color: {
       hex: '#EDE8DF',
       label: 'Crème'
@@ -3512,7 +3512,7 @@ function TypiqueSite() {
     id: 'sw-minot',
     cat: 'SWEATS',
     name: 'Le Minot du Sud',
-    sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+    sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Taille un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle · Laver à 30° à l\'envers',
     color: {
       hex: '#2F2F31',
       label: 'Anthracite'
@@ -3528,7 +3528,7 @@ function TypiqueSite() {
     id: 'sw-corpssale',
     cat: 'SWEATS',
     name: 'Corps Salé Coeur Solaire',
-    sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Laver à 30° à l\'envers',
+    sizeNote: '85 % coton biologique peigné, 15 % polyester recyclé, 300 g/m² · Coupe oversize · Taille un peu petit : nous conseillons de prendre une taille au-dessus de votre taille habituelle · Laver à 30° à l\'envers',
     color: {
       hex: '#775855',
       label: 'Mocha'
